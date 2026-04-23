@@ -3,36 +3,84 @@
 ## 1. ARCHITECTURE OVERVIEW
 
 **Components:**
-- **Frontend (React 18 + TypeScript 5):** SPA dashboard for KPIs, trends, order table, and order creation form. Responsive, dark/light theme, error handling, and filtering.
-- **Backend (Node.js 20 + Express.js 4.18):** Single service (`pedido-service`) exposing REST endpoints for Catalogo, Pedido, Usuario, Notificacion. Uses PostgreSQL 15 (orders, catalog, users, notifications), Redis 7 (cache), RabbitMQ 3.12 (event: pedido_creado).
-- **API Gateway (Kong 3.4):** Routes frontend and API requests to backend service.
-- **Infrastructure:** Docker Compose for local orchestration, Kubernetes manifests (Terraform for AWS EKS, RDS, ElastiCache), GitHub Actions for CI/CD.
+- **Frontend:** React 18 + TypeScript (Vite), implements dashboard, KPIs, order table, creation form, responsive layout.
+- **Backend:** FastAPI (Python 3.11), exposes REST API for KPIs, orders, plants, centers, users; uses SQLite (local, per constraints).
+- **Database:** SQLite (local, file-based, per constraints).
+- **Cache:** Redis 7 (for KPI caching).
+- **Infrastructure:** Docker Compose for local orchestration, healthchecks, .env, run.sh, Kubernetes manifests for future deployment.
+- **Shared:** TypeScript interfaces (frontend), Pydantic/SQLAlchemy models (backend), shared config/utilities.
 
-**Models:**
-- **Catalogo, Pedido, PedidoItem, Usuario, Notificacion** (see SPEC.md §2 for exact fields).
-- **DB Schema:** Tables for catalogo, pedido, pedido_item, usuario, notificacion (see SPEC.md §2).
+**APIs (from SPEC.md):**
+- `GET /api/kpis` → KPIResponse
+- `GET /api/ordenes` → List[Orden]
+- `POST /api/ordenes` → Orden
+- `GET /api/plantas` → List[Planta]
+- `GET /api/centros` → List[Centro]
+- `GET /api/usuarios` → List[Usuario]
 
-**APIs:** (see SPEC.md §3)
-- `/catalogo` (CRUD), `/pedidos` (CRUD), `/usuarios` (CRUD), `/notificaciones` (CRUD)
-
-**Folder Structure:** (see SPEC.md §4)
-- `frontend/` (SPA)
-- `backend/pedido-service/` (Express service)
-- `backend/shared/` (models, db, cache)
-- `kong/` (gateway config)
-- `terraform/` (infra as code)
-- Root: `docker-compose.yml`, `.env.example`, `run.sh`, `README.md`, `.gitignore`
+**Folder Structure:**
+```
+project-root/
+├── frontend/
+│   ├── src/
+│   │   ├── api/
+│   │   ├── hooks/
+│   │   ├── components/
+│   │   ├── types/
+│   │   └── main.tsx, App.tsx, index.html
+│   ├── Dockerfile
+│   ├── vite.config.ts
+│   ├── tsconfig.json
+│   └── package.json
+├── backend/
+│   ├── api-service/
+│   │   ├── src/
+│   │   │   ├── main.py
+│   │   │   ├── models.py
+│   │   │   ├── schemas.py
+│   │   │   ├── crud.py
+│   │   │   ├── db.py
+│   │   │   ├── cache.py
+│   │   │   ├── dependencies.py
+│   │   │   ├── config.py
+│   │   │   └── api/
+│   │   │       ├── __init__.py
+│   │   │       └── endpoints.py
+│   │   ├── Dockerfile
+│   │   └── requirements.txt
+│   └── shared/
+│       ├── __init__.py
+│       ├── auth.py
+│       └── utils.py
+├── shared/
+│   ├── types.ts
+│   ├── config.ts
+│   ├── utils.ts
+│   ├── models.py
+│   └── config.py
+├── docs/
+│   └── architecture.md
+├── docker-compose.yml
+├── .env.example
+├── .gitignore
+├── .dockerignore
+├── run.sh
+└── README.md
+```
 
 ## 2. ACCEPTANCE CRITERIA
 
-1. The dashboard displays 4 KPI cards, trend and volume charts, a paginated/filterable order table, and a creation form, all updating dynamically and responsively.
-2. The backend exposes all endpoints as per SPEC.md, with correct data contracts, validation, error handling, and health checks; events are published to RabbitMQ on order creation.
-3. The system runs locally with `./run.sh`, all services healthy, frontend accessible at `http://localhost:<frontend-port>`, and all API endpoints functional via Kong gateway.
+1. **Dashboard displays KPIs, line/bar charts, and order table with real data, supporting filtering by plant and order status.**
+2. **Order creation form allows valid orders to be created, with validation and error handling, and updates dashboard on success.**
+3. **Database initializes with seed data (plants, centers, users, orders) if empty on first run.**
+4. **All endpoints respond per SPEC.md, with correct status codes, schemas, and error handling.**
+5. **Frontend is fully responsive per requirements, with correct layouts for desktop, tablet, and mobile.**
+6. **All services start via `./run.sh`, pass healthchecks, and are accessible at documented URLs.**
+7. **Tests cover at least one happy-path and one error-path per endpoint/component.**
 
 ---
 
 ## TEAM SCOPE (MANDATORY — PARSED BY THE PIPELINE)
-
 - **Role:** role-tl (technical_lead)
 - **Role:** role-be (backend_developer)
 - **Role:** role-fe (frontend_developer)
@@ -47,163 +95,147 @@
 ### ITEM 1: Foundation — shared types, interfaces, DB schemas, config
 
 **Goal:**  
-Create all shared code and configuration required by backend and frontend. This includes TypeScript interfaces for all data contracts, shared DB connection logic, Redis cache logic, and the complete SQL schema for PostgreSQL. All other items will import from these files.
+Create all shared code and contracts for the project, including:
+- TypeScript interfaces for frontend (Planta, Centro, Usuario, Orden, KPIResponse)
+- Shared config and utility functions for frontend (env, helpers)
+- Pydantic and SQLAlchemy models for backend (Planta, Centro, Usuario, Orden, KPIResponse)
+- Shared config and utility functions for backend (env, helpers)
+- Complete DB schema for SQLite (DDL with indexes)
 
 **Files to create:**
-- backend/shared/models.ts (create) — All TypeScript interfaces: Catalogo, Pedido, PedidoItem, Usuario, Notificacion (as per SPEC.md §2)
-- backend/shared/db.ts (create) — Shared PostgreSQL connection logic (pooling, env validation)
-- backend/shared/cache.ts (create) — Shared Redis cache logic (connection, get/set helpers)
-- backend/pedido-service/src/config/db.ts (create) — Service-specific DB config (imports shared/db.ts)
-- backend/pedido-service/src/config/redis.ts (create) — Service-specific Redis config (imports shared/cache.ts)
-- backend/pedido-service/src/config/rabbitmq.ts (create) — RabbitMQ connection/config
-- backend/pedido-service/src/config/env.ts (create) — Environment variable validation for all required vars
-- backend/pedido-service/src/utils/validator.ts (create) — Input validation helpers (Joi/Zod schemas for all endpoints)
-- backend/shared/db/schema.sql (create) — Complete PostgreSQL schema for all tables (catalogo, pedido, pedido_item, usuario, notificacion) with indexes and constraints as per SPEC.md §2
+- shared/types.ts (create) — All TypeScript interfaces and enums for Planta, Centro, Usuario, Orden, KPIResponse
+- shared/config.ts (create) — Frontend shared config (API URL, env validation)
+- shared/utils.ts (create) — Frontend shared utility functions (date formatting, etc.)
+- shared/models.py (create) — All Pydantic and SQLAlchemy models for Planta, Centro, Usuario, Orden, KPIResponse, enums for order status
+- shared/config.py (create) — Backend shared config (env validation, constants)
+- backend/api-service/src/db/schema.sql (create) — Complete SQLite schema with indexes for all tables
+
+**Tests required:**
+- backend/api-service/tests/test_models.py: test model creation, validation, and relationships
+- frontend/tests/types.test.ts: test TypeScript type guards and utility functions
 
 **Dependencies:** None
 
 **Validation:**  
-- All TypeScript files compile with `tsc --noEmit`.
-- `schema.sql` can be applied to a fresh PostgreSQL 15 instance without errors.
-- Running `node -r ts-node/register backend/shared/db.ts` connects to DB using env vars.
+- Run `pytest backend/api-service/tests/test_models.py` — all tests pass  
+- Run `npm test` in frontend — all type and utility tests pass
 
 **Role:** role-tl (technical_lead)
 
 ---
 
-### ITEM 2: Backend — Pedido Service (Express API: Catalogo, Pedido, Usuario, Notificacion, Events)
+### ITEM 2: Backend — FastAPI API service (endpoints, business logic, seed data, caching)
 
 **Goal:**  
-Implement the full Express.js backend service (`pedido-service`) exposing all endpoints as per SPEC.md §3 for Catalogo, Pedido, Usuario, Notificacion. Includes controllers, services, routes, error handling, event publishing to RabbitMQ, and health check endpoint.
+Implement the FastAPI backend service with all endpoints and business logic:
+- Expose all endpoints per SPEC.md (`/api/kpis`, `/api/ordenes` GET/POST, `/api/plantas`, `/api/centros`, `/api/usuarios`)
+- Implement business logic for KPIs, filtering, and order creation (with validation)
+- Seed database with initial data if empty on startup
+- Use Redis for KPI caching
+- Structured logging, error handling, healthcheck endpoint
+- Use models/config from shared/
+- Tests for all endpoints (happy/error paths)
 
 **Files to create:**
-- backend/pedido-service/src/app.ts (create) — Express app setup, registers all routers, error handler, health check
-- backend/pedido-service/src/index.ts (create) — HTTP server bootstrap (reads PORT from env, starts app)
-- backend/pedido-service/src/routes/catalogo.ts (create) — Catalogo endpoints (GET/POST/PUT/DELETE)
-- backend/pedido-service/src/routes/pedido.ts (create) — Pedido endpoints (GET/POST/PUT/DELETE)
-- backend/pedido-service/src/routes/usuario.ts (create) — Usuario endpoints (GET/POST/PUT/DELETE)
-- backend/pedido-service/src/routes/notificacion.ts (create) — Notificacion endpoints (GET/POST/DELETE)
-- backend/pedido-service/src/controllers/catalogoController.ts (create) — Catalogo logic
-- backend/pedido-service/src/controllers/pedidoController.ts (create) — Pedido logic (publishes pedido_creado event)
-- backend/pedido-service/src/controllers/usuarioController.ts (create) — Usuario logic
-- backend/pedido-service/src/controllers/notificacionController.ts (create) — Notificacion logic
-- backend/pedido-service/src/services/catalogoService.ts (create) — Catalogo DB/cache logic
-- backend/pedido-service/src/services/pedidoService.ts (create) — Pedido DB/cache/event logic
-- backend/pedido-service/src/services/usuarioService.ts (create) — Usuario DB/cache logic
-- backend/pedido-service/src/services/notificacionService.ts (create) — Notificacion DB/cache logic
-- backend/pedido-service/src/events/pedidoEvents.ts (create) — RabbitMQ publisher for pedido_creado
-- backend/pedido-service/src/middleware/errorHandler.ts (create) — Centralized error handler (structured logging)
-- backend/pedido-service/Dockerfile (create) — Multi-stage build, non-root, EXPOSE 8001, CMD: `node dist/index.js`
-- backend/pedido-service/package.json (create) — All dependencies, scripts (build, start, dev)
-- backend/pedido-service/tsconfig.json (create) — TypeScript config (strict mode, outDir: dist)
+- backend/api-service/src/main.py (create) — FastAPI app entry point, includes startup event for seed data, healthcheck
+- backend/api-service/src/models.py (create) — SQLAlchemy models (import from shared/models.py)
+- backend/api-service/src/schemas.py (create) — Pydantic schemas (import from shared/models.py)
+- backend/api-service/src/crud.py (create) — CRUD operations for all entities
+- backend/api-service/src/api/endpoints.py (create) — All API route definitions
+- backend/api-service/src/db.py (create) — DB session/engine setup, uses schema.sql
+- backend/api-service/src/cache.py (create) — Redis cache logic for KPIs
+- backend/api-service/src/dependencies.py (create) — Dependency injection for DB, cache
+- backend/api-service/src/config.py (create) — Env var validation, settings (import from shared/config.py)
+- backend/api-service/Dockerfile (create) — Multi-stage build, EXPOSE 8001, CMD: uvicorn src.main:app --host 0.0.0.0 --port 8001
+- backend/api-service/requirements.txt (create) — All Python dependencies (fastapi, sqlalchemy, aioredis, pydantic, etc.)
+- backend/api-service/tests/test_api.py (create) — Pytest: test all endpoints (happy/error paths), seed data, caching
 
 **Dependencies:** Item 1
 
 **Validation:**  
-- `docker build .` in `backend/pedido-service` succeeds.
-- `docker run` exposes all endpoints on port 8001.
-- `GET /health` returns `{status: "ok", service: "pedido-service", version: "<version>"}`.
-- All endpoints respond as per SPEC.md, with correct validation and error handling.
-- On POST /pedidos, a `pedido_creado` event is published to RabbitMQ.
+- Run `pytest backend/api-service/tests/test_api.py` — all tests pass  
+- Build and run Docker image, hit `/api/kpis` and `/api/ordenes` — correct data returned
 
 **Role:** role-be (backend_developer)
 
 ---
 
-### ITEM 3: Frontend — SPA Dashboard (React 18, TypeScript 5)
+### ITEM 3: Frontend — React app (dashboard, forms, hooks, API clients, responsive UI)
 
 **Goal:**  
-Implement the full SPA dashboard in React 18 + TypeScript 5. Includes: KPI cards, trend and volume charts, paginated/filterable order table, order creation form with validation, dark/light theme toggle, responsive layouts, error handling (API down, empty data), and project header.
+Implement the React frontend with all required features:
+- Dashboard page: KPIs in cards, line/bar charts (trend/volume), order table with filters and pagination
+- Order creation form with validation, error handling, and notifications
+- Responsive layout per requirements (desktop/tablet/mobile)
+- API clients for all endpoints, React hooks for data fetching
+- Use TypeScript interfaces from shared/
+- Tests for components, hooks, and forms
 
 **Files to create:**
-- frontend/src/main.tsx (create) — React entry point (mounts App)
-- frontend/src/App.tsx (create) — Root component, layout, theme provider, error boundary
-- frontend/src/api/catalogoApi.ts (create) — API client for Catalogo endpoints
-- frontend/src/api/pedidoApi.ts (create) — API client for Pedido endpoints
-- frontend/src/api/usuarioApi.ts (create) — API client for Usuario endpoints
-- frontend/src/api/notificacionApi.ts (create) — API client for Notificacion endpoints
-- frontend/src/hooks/useCatalogo.ts (create) — Data fetching, caching, error state for Catalogo
-- frontend/src/hooks/usePedidos.ts (create) — Data fetching, filtering, error state for Pedidos
-- frontend/src/hooks/useUsuarios.ts (create) — Data fetching, error state for Usuarios
-- frontend/src/hooks/useNotificaciones.ts (create) — Data fetching, error state for Notificaciones
-- frontend/src/components/CatalogoList.tsx (create) — Catalogo list UI
-- frontend/src/components/CatalogoForm.tsx (create) — Catalogo creation/edit form
-- frontend/src/components/PedidoList.tsx (create) — Pedido table with pagination, filters, detail view
-- frontend/src/components/PedidoForm.tsx (create) — Pedido creation form with validation, error handling
-- frontend/src/components/UsuarioList.tsx (create) — Usuario list UI
-- frontend/src/components/UsuarioForm.tsx (create) — Usuario creation/edit form
-- frontend/src/components/NotificacionList.tsx (create) — Notificacion list UI
-- frontend/src/components/NotificacionForm.tsx (create) — Notificacion creation form
-- frontend/src/components/KPICards.tsx (create) — 4 KPI cards (total units, completed orders, avg delivery days, fulfillment rate)
-- frontend/src/components/TrendChart.tsx (create) — Line chart for units/month (last 6 months)
-- frontend/src/components/VolumeByPlantChart.tsx (create) — Bar chart for volume by plant
-- frontend/src/components/Header.tsx (create) — Project name, subtitle, theme toggle
-- frontend/src/components/ErrorBanner.tsx (create) — API down banner with retry
-- frontend/src/types/models.ts (create) — All frontend TypeScript interfaces (mirrors backend/shared/models.ts)
-- frontend/src/utils/format.ts (create) — Formatting helpers (dates, numbers)
-- frontend/public/index.html (create) — HTML entry point
-- frontend/Dockerfile (create) — Multi-stage build, non-root, EXPOSE 5173, CMD: `npm run preview` or `serve dist`
-- frontend/package.json (create) — All dependencies, scripts (build, start, dev)
-- frontend/tsconfig.json (create) — TypeScript config (strict mode, outDir: dist)
+- frontend/src/main.tsx (create) — React entry point
+- frontend/src/App.tsx (create) — Root component, routing/layout
+- frontend/src/api/kpiApi.ts (create) — API client for KPIs
+- frontend/src/api/ordenApi.ts (create) — API client for ordenes
+- frontend/src/api/plantaApi.ts (create) — API client for plantas
+- frontend/src/api/centroApi.ts (create) — API client for centros
+- frontend/src/api/usuarioApi.ts (create) — API client for usuarios
+- frontend/src/hooks/useKpis.ts (create) — React hook for KPIs
+- frontend/src/hooks/useOrdenes.ts (create) — React hook for ordenes
+- frontend/src/hooks/usePlantas.ts (create) — React hook for plantas
+- frontend/src/hooks/useCentros.ts (create) — React hook for centros
+- frontend/src/hooks/useUsuarios.ts (create) — React hook for usuarios
+- frontend/src/components/Dashboard.tsx (create) — Dashboard visualization (KPIs, charts, filters)
+- frontend/src/components/OrdenList.tsx (create) — Order table with pagination/filters
+- frontend/src/components/OrdenForm.tsx (create) — Order creation form with validation
+- frontend/src/components/PlantaList.tsx (create) — List of plantas (for selectors)
+- frontend/src/components/CentroList.tsx (create) — List of centros (for selectors)
+- frontend/src/components/UsuarioList.tsx (create) — List of usuarios (for selectors)
+- frontend/src/types/models.ts (create) — TypeScript interfaces (import from shared/types.ts)
+- frontend/src/index.html (create) — HTML entry point
+- frontend/Dockerfile (create) — Multi-stage build, EXPOSE 3000, production-ready
+- frontend/vite.config.ts (create) — Vite config (API proxy, env)
+- frontend/tsconfig.json (create) — TypeScript config (strict mode)
+- frontend/package.json (create) — NPM dependencies, scripts
+- frontend/tests/Dashboard.test.tsx (create) — Test dashboard rendering, filtering, loading
+- frontend/tests/OrdenForm.test.tsx (create) — Test form validation, submission, error handling
+- frontend/tests/OrdenList.test.tsx (create) — Test table rendering, pagination, filtering
 
 **Dependencies:** Item 1
 
 **Validation:**  
-- `docker build .` in `frontend` succeeds.
-- `docker run` exposes the SPA at port 5173 (or as configured).
-- All UI elements render and update as per acceptance criteria.
-- API requests go through Kong gateway and display correct data/errors.
+- Run `npm test` — all tests pass  
+- Build and run Docker image, access dashboard at `localhost:3000`, verify all features
 
 **Role:** role-fe (frontend_developer)
 
 ---
 
-### ITEM 4: API Gateway — Kong Configuration
+### ITEM 4: Infrastructure & Deployment
 
 **Goal:**  
-Configure Kong API Gateway to route all frontend and API requests to the correct backend service(s), with declarative YAML config and Dockerfile for Kong container.
+Provide complete orchestration and documentation for local development:
+- Docker Compose for all services (backend, frontend, redis)
+- Healthchecks and startup order (DB/Redis → backend → frontend)
+- .env.example with all required variables and descriptions
+- .gitignore, .dockerignore for clean repo/builds
+- run.sh script: checks Docker, builds, starts, waits for healthy, prints access URL
+- README.md: setup, run, test, endpoints, troubleshooting
+- docs/architecture.md: system/component diagram, flow, and description
 
 **Files to create:**
-- kong/kong.yml (create) — Declarative config for all routes/services (as per SPEC.md §4)
-- kong/Dockerfile (create) — Kong container build (copies kong.yml, sets up plugins as needed)
+- docker-compose.yml (create) — All services, healthchecks, depends_on, correct ports
+- .env.example (create) — All variables with descriptions and example values
+- .gitignore (create) — Exclude node_modules, dist, .env, __pycache__, *.pyc, etc.
+- .dockerignore (create) — Exclude node_modules, .git, *.log, dist
+- run.sh (create) — Validates Docker, builds, starts, waits healthy, prints URL
+- README.md (create) — Prerequisites, clone, run, test, endpoints, troubleshooting
+- docs/architecture.md (create) — System diagram and component descriptions
 
-**Dependencies:** Item 2, Item 3
-
-**Validation:**  
-- `docker build .` in `kong` succeeds.
-- Kong routes `/api/*` to backend/pedido-service, `/` to frontend.
-- Healthcheck endpoint for Kong responds with 200.
-
-**Role:** role-devops (devops_support)
-
----
-
-### ITEM 5: Infrastructure & Deployment
-
-**Goal:**  
-Provide complete local orchestration and documentation for the project. Includes Docker Compose for all services (with healthchecks and depends_on), environment variable template, run script, ignore files, and architecture docs.
-
-**Files to create:**
-- docker-compose.yml (create) — All services (frontend, backend/pedido-service, postgres, redis, rabbitmq, kong) with healthchecks and correct port mappings
-- .env.example (create) — All required environment variables with descriptions and example values
-- .gitignore (create) — Exclude node_modules, dist, .env, .DS_Store, logs, etc.
-- .dockerignore (create) — Exclude node_modules, .git, dist, logs, etc.
-- run.sh (create) — Checks Docker, builds images, starts all services, waits for healthy, prints access URL
-- README.md (create) — Prerequisites, setup, run instructions, endpoints, troubleshooting
-- docs/architecture.md (create) — System diagram, component descriptions, deployment notes
-- terraform/main.tf (create) — Terraform config for AWS EKS, RDS, ElastiCache, etc.
-- terraform/variables.tf (create) — Terraform variables
-- terraform/outputs.tf (create) — Terraform outputs
-- terraform/provider.tf (create) — AWS provider config
-
-**Dependencies:** Items 1–4
+**Dependencies:** Items 1, 2, 3
 
 **Validation:**  
-- `./run.sh` completes without errors.
-- All containers are healthy (`docker ps` shows healthy status).
-- Frontend accessible at `http://localhost:<frontend-port>`.
-- All API endpoints functional via Kong gateway.
-- README instructions allow a new developer to run the project end-to-end.
+- Run `./run.sh` — all services start, healthchecks pass, dashboard accessible at `localhost:3000`, API at `localhost:8001`
+- All endpoints respond, frontend works, seed data present
 
 **Role:** role-devops (devops_support)
 

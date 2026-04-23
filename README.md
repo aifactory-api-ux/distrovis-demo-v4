@@ -1,57 +1,45 @@
-# Distrovis Demo v4
+# Distrovis
 
-Sistema de gestión de pedidos con arquitectura moderna de microservicios.
-
-## Componentes
-
-- **Frontend**: React 18 + TypeScript SPA con dashboard de KPIs
-- **Backend**: Node.js 20 + Express.js 4.18 service (pedido-service)
-- **Base de datos**: PostgreSQL 15
-- **Cache**: Redis 7
-- **Message Queue**: RabbitMQ 3.12
-- **API Gateway**: Kong 3.4
+Sistema de gestion deordenes con dashboard de KPIs.
 
 ## Requisitos
 
-- Docker 24+
-- Docker Compose
+- Docker 24.0.5+
+- docker-compose 2.21.0+
 
-## Instalación
+## Instalacion
 
-1. Clonar el repositorio
-2. Ejecutar `./run.sh`
+```bash
+./run.sh
+```
 
-## Endpoints
+## Servicios
 
-- **Frontend**: http://localhost:5173
-- **API Gateway**: http://localhost:8000
-- **Health Check**: http://localhost:8000/health
+- Frontend: http://localhost:3000
+- API: http://localhost:8001
+- Health check: http://localhost:8001/health
 
-### API Endpoints
+## API Endpoints
 
-- `GET /catalogo` - Listar catálogo
-- `POST /catalogo` - Crear producto
-- `GET /pedidos` - Listar pedidos
-- `POST /pedidos` - Crear pedido
-- `GET /usuarios` - Listar usuarios
-- `POST /usuarios` - Crear usuario
-- `GET /notificaciones` - Listar notificaciones
-- `POST /notificaciones` - Crear notificación
+| Method | Path          | Descripcion                |
+|--------|---------------|----------------------------|
+| GET    | /api/kpis     | Obtener KPIs del dashboard |
+| GET    | /api/ordenes  | Listar ordenes             |
+| POST   | /api/ordenes  | Crear orden                |
+| GET    | /api/plantas  | Listar plantas             |
+| GET    | /api/centros  | Listar centros              |
+| GET    | /api/usuarios | Listar usuarios             |
 
-## Desarrollo
+## Testing
 
 ```bash
 # Backend
-cd backend/pedido-service
-npm install
-npm run dev
+cd backend/api-service
+pip install -r requirements.txt
+pytest
 
 # Frontend
 cd frontend
 npm install
-npm run dev
+npm test
 ```
-
-## Variables de Entorno
-
-Ver `.env.example` para todas las variables disponibles.

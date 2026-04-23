@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1776973718575" clover="3.2.0">
+  <project timestamp="1776973718575" name="All files">
+    <metrics statements="37" coveredstatements="28" conditionals="6" coveredconditionals="1" methods="7" coveredmethods="6" elements="50" coveredelements="35" complexity="0" loc="37" ncloc="37" packages="1" files="2" classes="2"/>
+    <file name="useKpis.ts" path="/workspace/2d51fa49-22fe-46ec-b2ce-7c3e9e5eddf8/frontend/src/hooks/useKpis.ts">
+      <metrics statements="14" coveredstatements="14" conditionals="2" coveredconditionals="1" methods="3" coveredmethods="3"/>
+      <line num="6" count="6" type="stmt"/>
+      <line num="7" count="6" type="stmt"/>
+      <line num="8" count="6" type="stmt"/>
+      <line num="10" count="6" type="stmt"/>
+      <line num="11" count="2" type="stmt"/>
+      <line num="12" count="2" type="stmt"/>
+      <line num="13" count="2" type="stmt"/>
+      <line num="14" count="2" type="stmt"/>
+      <line num="15" count="1" type="stmt"/>
+      <line num="17" count="1" type="cond" truecount="1" falsecount="1"/>
+      <line num="19" count="2" type="stmt"/>
+      <line num="23" count="6" type="stmt"/>
+      <line num="24" count="2" type="stmt"/>
+      <line num="27" count="6" type="stmt"/>
+    </file>
+    <file name="useOrdenes.ts" path="/workspace/2d51fa49-22fe-46ec-b2ce-7c3e9e5eddf8/frontend/src/hooks/useOrdenes.ts">
+      <metrics statements="23" coveredstatements="14" conditionals="4" coveredconditionals="0" methods="4" coveredmethods="3"/>
+      <line num="6" count="3" type="stmt"/>
+      <line num="7" count="3" type="stmt"/>
+      <line num="8" count="3" type="stmt"/>
+      <line num="10" count="3" type="stmt"/>
+      <line num="11" count="1" type="stmt"/>
+      <line num="12" count="1" type="stmt"/>
+      <line num="13" count="1" type="stmt"/>
+      <line num="14" count="1" type="stmt"/>
+      <line num="15" count="1" type="stmt"/>
+      <line num="17" count="0" type="cond" truecount="0" falsecount="2"/>
+      <line num="19" count="1" type="stmt"/>
+      <line num="23" count="3" type="stmt"/>
+      <line num="24" count="0" type="stmt"/>
+      <line num="25" count="0" type="stmt"/>
+      <line num="26" count="0" type="stmt"/>
+      <line num="27" count="0" type="stmt"/>
+      <line num="28" count="0" type="stmt"/>
+      <line num="30" count="0" type="cond" truecount="0" falsecount="2"/>
+      <line num="31" count="0" type="stmt"/>
+      <line num="33" count="0" type="stmt"/>
+      <line num="37" count="3" type="stmt"/>
+      <line num="38" count="1" type="stmt"/>
+      <line num="41" count="3" type="stmt"/>
+    </file>
+  </project>
+</coverage>

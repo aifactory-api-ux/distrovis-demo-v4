@@ -1,37 +1,39 @@
-export interface Catalogo {
+export interface Planta {
   id: number;
   nombre: string;
-  descripcion: string;
-  precio: number;
-  stock: number;
+  ubicacion: string;
 }
 
-export interface Pedido {
+export interface Centro {
   id: number;
-  usuario_id: number;
-  fecha: string;
-  estado: string;
-  total: number;
-  items: PedidoItem[];
-}
-
-export interface PedidoItem {
-  catalogo_id: number;
-  cantidad: number;
-  precio_unitario: number;
+  nombre: string;
+  ubicacion: string;
 }
 
 export interface Usuario {
   id: number;
   nombre: string;
   email: string;
-  rol: string;
 }
 
-export interface Notificacion {
+export interface Orden {
   id: number;
-  pedido_id: number;
-  tipo: string;
-  mensaje: string;
-  fecha_envio: string;
+  planta_id: number;
+  centro_id: number;
+  usuario_id: number;
+  estado: string;
+  unidades: number;
+  fecha_creacion: string;
+  fecha_entrega: string;
 }
+
+export interface KPIResponse {
+  total_ordenes: number;
+  total_unidades: number;
+  ordenes_pendientes: number;
+  ordenes_entregadas: number;
+  despachos_por_planta: { planta_id: number; total_despachos: number }[];
+  despachos_por_centro: { centro_id: number; total_despachos: number }[];
+}
+
+export type OrdenEstado = 'pendiente' | 'en_proceso' | 'entregado' | 'cancelado';

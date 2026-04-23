@@ -2,243 +2,194 @@
 
 ## 1. TECHNOLOGY STACK
 
-- **Backend**
-  - Node.js 20
-  - Express.js 4.18
-  - TypeScript 5
-  - PostgreSQL 15 (AWS RDS PostgreSQL)
-  - Redis 7 (AWS ElastiCache Redis)
-  - RabbitMQ 3.12
 - **Frontend**
-  - React 18
-  - TypeScript 5
-- **Infrastructure**
-  - Docker 24
-  - Kubernetes 1.28 (AWS EKS)
-  - Kong API Gateway 3.4
-  - Terraform 1.6
-  - GitHub Actions
+  - React 18.2.0
+  - TypeScript 5.2.2
+  - Vite 4.4.9
+
+- **Backend**
+  - Python 3.11
+  - FastAPI 0.103.0
+  - Uvicorn 0.23.2
+  - SQLAlchemy 2.0.19
+  - aioredis 2.0.1
+
+- **Database**
+  - PostgreSQL 15
+
+- **Cache**
+  - Redis 7
+
+- **API Gateway**
+  - Kong 3.4
+
+- **Authentication**
+  - Keycloak 22.0.1
+
+- **Containerization & Orchestration**
+  - Docker 24.0.5
+  - docker-compose 2.21.0
+  - Kubernetes 1.27
+
+- **Other**
+  - Node.js 20.10.0
 
 ---
 
 ## 2. DATA CONTRACTS
 
-### TypeScript Interfaces (Backend & Frontend)
+### Python (FastAPI) — Pydantic Models
+
+```python
+from pydantic import BaseModel, EmailStr
+from datetime import date
+from typing import List
+
+class Planta(BaseModel):
+    id: int
+    nombre: str
+    ubicacion: str
+
+class Centro(BaseModel):
+    id: int
+    nombre: str
+    ubicacion: str
+
+class Usuario(BaseModel):
+    id: int
+    nombre: str
+    email: EmailStr
+
+class Orden(BaseModel):
+    id: int
+    planta_id: int
+    centro_id: int
+    usuario_id: int
+    estado: str
+    unidades: int
+    fecha_creacion: date
+    fecha_entrega: date
+
+class KPIResponse(BaseModel):
+    total_ordenes: int
+    total_unidades: int
+    ordenes_pendientes: int
+    ordenes_entregadas: int
+    despachos_por_planta: List[dict]  # [{'planta_id': int, 'total_despachos': int}]
+    despachos_por_centro: List[dict]  # [{'centro_id': int, 'total_despachos': int}]
+```
+
+### TypeScript (Frontend) — Interface Definitions
 
 ```typescript
-// Catalogo
-export interface Catalogo {
+export interface Planta {
   id: number;
   nombre: string;
-  descripcion: string;
-  precio: number;
-  stock: number;
+  ubicacion: string;
 }
 
-// Pedido
-export interface Pedido {
+export interface Centro {
   id: number;
-  usuario_id: number;
-  fecha: string; // ISO date string (YYYY-MM-DD)
-  estado: string;
-  total: number;
-  items: PedidoItem[];
+  nombre: string;
+  ubicacion: string;
 }
 
-// PedidoItem (relation between Pedido and Catalogo)
-export interface PedidoItem {
-  catalogo_id: number;
-  cantidad: number;
-  precio_unitario: number;
-}
-
-// Usuario
 export interface Usuario {
   id: number;
   nombre: string;
   email: string;
-  rol: string;
 }
 
-// Notificacion
-export interface Notificacion {
+export interface Orden {
   id: number;
-  pedido_id: number;
-  tipo: string;
-  mensaje: string;
-  fecha_envio: string; // ISO datetime string
+  planta_id: number;
+  centro_id: number;
+  usuario_id: number;
+  estado: string;
+  unidades: number;
+  fecha_creacion: string; // ISO date
+  fecha_entrega: string;  // ISO date
+}
+
+export interface KPIResponse {
+  total_ordenes: number;
+  total_unidades: number;
+  ordenes_pendientes: number;
+  ordenes_entregadas: number;
+  despachos_por_planta: { planta_id: number; total_despachos: number }[];
+  despachos_por_centro: { centro_id: number; total_despachos: number }[];
 }
 ```
-
-### PostgreSQL Table Schemas
-
-- **catalogo**
-  - id: SERIAL PRIMARY KEY
-  - nombre: VARCHAR(255) NOT NULL
-  - descripcion: TEXT NOT NULL
-  - precio: NUMERIC(12,2) NOT NULL
-  - stock: INTEGER NOT NULL
-
-- **pedido**
-  - id: SERIAL PRIMARY KEY
-  - usuario_id: INTEGER NOT NULL REFERENCES usuario(id)
-  - fecha: DATE NOT NULL
-  - estado: VARCHAR(50) NOT NULL
-  - total: NUMERIC(12,2) NOT NULL
-
-- **pedido_item**
-  - pedido_id: INTEGER NOT NULL REFERENCES pedido(id)
-  - catalogo_id: INTEGER NOT NULL REFERENCES catalogo(id)
-  - cantidad: INTEGER NOT NULL
-  - precio_unitario: NUMERIC(12,2) NOT NULL
-  - PRIMARY KEY (pedido_id, catalogo_id)
-
-- **usuario**
-  - id: SERIAL PRIMARY KEY
-  - nombre: VARCHAR(255) NOT NULL
-  - email: VARCHAR(255) NOT NULL UNIQUE
-  - rol: VARCHAR(50) NOT NULL
-
-- **notificacion**
-  - id: SERIAL PRIMARY KEY
-  - pedido_id: INTEGER NOT NULL REFERENCES pedido(id)
-  - tipo: VARCHAR(50) NOT NULL
-  - mensaje: TEXT NOT NULL
-  - fecha_envio: TIMESTAMP NOT NULL
 
 ---
 
 ## 3. API ENDPOINTS
 
-### Catalogo
+### 1. Get KPIs for Dashboard
 
-- **GET /catalogo**
-  - Response: `Catalogo[]`
+- **Method:** GET
+- **Path:** `/api/kpis`
+- **Request Body:** _None_
+- **Response:**
+  - **Status:** 200 OK
+  - **Schema:** `KPIResponse` (see above)
 
-- **GET /catalogo/:id**
-  - Response: `Catalogo`
+### 2. List Ordenes
 
-- **POST /catalogo**
-  - Request body:
-    ```json
-    {
-      "nombre": "string",
-      "descripcion": "string",
-      "precio": number,
-      "stock": number
-    }
-    ```
-  - Response: `Catalogo`
+- **Method:** GET
+- **Path:** `/api/ordenes`
+- **Request Body:** _None_
+- **Response:**
+  - **Status:** 200 OK
+  - **Schema:** `List[Orden]`
 
-- **PUT /catalogo/:id**
-  - Request body:
-    ```json
-    {
-      "nombre": "string",
-      "descripcion": "string",
-      "precio": number,
-      "stock": number
-    }
-    ```
-  - Response: `Catalogo`
+### 3. Create Orden
 
-- **DELETE /catalogo/:id**
-  - Response: `{ "success": boolean }`
+- **Method:** POST
+- **Path:** `/api/ordenes`
+- **Request Body:**
+  ```json
+  {
+    "planta_id": 1,
+    "centro_id": 2,
+    "usuario_id": 3,
+    "estado": "pendiente",
+    "unidades": 100,
+    "fecha_creacion": "2024-06-01",
+    "fecha_entrega": "2024-06-05"
+  }
+  ```
+  - **Schema:** All fields except `id` (auto-generated)
+- **Response:**
+  - **Status:** 201 Created
+  - **Schema:** `Orden`
 
-### Pedido
+### 4. List Plantas
 
-- **GET /pedidos**
-  - Response: `Pedido[]`
+- **Method:** GET
+- **Path:** `/api/plantas`
+- **Request Body:** _None_
+- **Response:**
+  - **Status:** 200 OK
+  - **Schema:** `List[Planta]`
 
-- **GET /pedidos/:id**
-  - Response: `Pedido`
+### 5. List Centros
 
-- **POST /pedidos**
-  - Request body:
-    ```json
-    {
-      "usuario_id": number,
-      "fecha": "YYYY-MM-DD",
-      "estado": "string",
-      "total": number,
-      "items": [
-        {
-          "catalogo_id": number,
-          "cantidad": number,
-          "precio_unitario": number
-        }
-      ]
-    }
-    ```
-  - Response: `Pedido`
+- **Method:** GET
+- **Path:** `/api/centros`
+- **Request Body:** _None_
+- **Response:**
+  - **Status:** 200 OK
+  - **Schema:** `List[Centro]`
 
-- **PUT /pedidos/:id**
-  - Request body:
-    ```json
-    {
-      "estado": "string"
-    }
-    ```
-  - Response: `Pedido`
+### 6. List Usuarios
 
-- **DELETE /pedidos/:id**
-  - Response: `{ "success": boolean }`
-
-### Usuario
-
-- **GET /usuarios**
-  - Response: `Usuario[]`
-
-- **GET /usuarios/:id**
-  - Response: `Usuario`
-
-- **POST /usuarios**
-  - Request body:
-    ```json
-    {
-      "nombre": "string",
-      "email": "string",
-      "rol": "string"
-    }
-    ```
-  - Response: `Usuario`
-
-- **PUT /usuarios/:id**
-  - Request body:
-    ```json
-    {
-      "nombre": "string",
-      "email": "string",
-      "rol": "string"
-    }
-    ```
-  - Response: `Usuario`
-
-- **DELETE /usuarios/:id**
-  - Response: `{ "success": boolean }`
-
-### Notificacion
-
-- **GET /notificaciones**
-  - Response: `Notificacion[]`
-
-- **GET /notificaciones/:id**
-  - Response: `Notificacion`
-
-- **POST /notificaciones**
-  - Request body:
-    ```json
-    {
-      "pedido_id": number,
-      "tipo": "string",
-      "mensaje": "string",
-      "fecha_envio": "YYYY-MM-DDTHH:MM:SSZ"
-    }
-    ```
-  - Response: `Notificacion`
-
-- **DELETE /notificaciones/:id**
-  - Response: `{ "success": boolean }`
+- **Method:** GET
+- **Path:** `/api/usuarios`
+- **Request Body:** _None_
+- **Response:**
+  - **Status:** 200 OK
+  - **Schema:** `List[Usuario]`
 
 ---
 
@@ -246,211 +197,136 @@ export interface Notificacion {
 
 ### PORT TABLE
 
-| Service         | Listening Port | Path                        |
-|-----------------|---------------|-----------------------------|
-| pedido-service  | 8001          | backend/pedido-service/     |
+| Service         | Listening Port | Path                      |
+|-----------------|---------------|---------------------------|
+| api-service     | 8001          | backend/api-service/      |
 
 ### FILE TREE
 
 ```
 .
-├── docker-compose.yml                # Multi-service orchestration (backend, frontend, db, redis, rabbitmq, kong)
-├── .env.example                     # Template for all environment variables
+├── docker-compose.yml                # Orchestrates all services (backend, frontend, db, redis, kong, keycloak)
+├── .env.example                     # Template for environment variables
 ├── .gitignore                       # Git ignore rules
 ├── README.md                        # Project documentation
 ├── run.sh                           # Root-level startup script
-├── terraform/                       # Terraform IaC for AWS EKS, RDS, ElastiCache, etc.
-│   ├── main.tf                      # Main Terraform configuration
-│   ├── variables.tf                 # Terraform variables
-│   ├── outputs.tf                   # Terraform outputs
-│   └── provider.tf                  # AWS provider config
-├── kong/                            # Kong API Gateway configuration
-│   ├── kong.yml                     # Declarative config for routes/services
-│   └── Dockerfile                   # Kong container build
 ├── backend/
-│   ├── shared/                      # Shared TypeScript modules (interfaces, utils)
-│   │   ├── models.ts                # All TypeScript interfaces for data contracts
-│   │   ├── db.ts                    # Shared DB connection logic
-│   │   └── cache.ts                 # Shared Redis cache logic
-│   └── pedido-service/
-│       ├── Dockerfile               # Pedido service container build
-│       ├── src/
-│       │   ├── index.ts             # Express app entry point
-│       │   ├── app.ts               # Express app setup
-│       │   ├── routes/
-│       │   │   ├── catalogo.ts      # Catalogo endpoints
-│       │   │   ├── pedido.ts        # Pedido endpoints
-│       │   │   ├── usuario.ts       # Usuario endpoints
-│       │   │   └── notificacion.ts  # Notificacion endpoints
-│       │   ├── controllers/
-│       │   │   ├── catalogoController.ts
-│       │   │   ├── pedidoController.ts
-│       │   │   ├── usuarioController.ts
-│       │   │   └── notificacionController.ts
-│       │   ├── services/
-│       │   │   ├── catalogoService.ts
-│       │   │   ├── pedidoService.ts
-│       │   │   ├── usuarioService.ts
-│       │   │   └── notificacionService.ts
-│       │   ├── events/
-│       │   │   └── pedidoEvents.ts  # RabbitMQ publisher for pedido_creado
-│       │   ├── middleware/
-│       │   │   └── errorHandler.ts
-│       │   ├── utils/
-│       │   │   └── validator.ts
-│       │   └── config/
-│       │       ├── db.ts
-│       │       ├── redis.ts
-│       │       ├── rabbitmq.ts
-│       │       └── env.ts
-│       └── tests/
-│           ├── catalogo.test.ts
-│           ├── pedido.test.ts
-│           ├── usuario.test.ts
-│           └── notificacion.test.ts
+│   ├── api-service/
+│   │   ├── Dockerfile               # Dockerfile for FastAPI service (EXPOSE 8001)
+│   │   ├── main.py                  # FastAPI app entry point
+│   │   ├── models.py                # SQLAlchemy models
+│   │   ├── schemas.py               # Pydantic schemas
+│   │   ├── crud.py                  # CRUD operations
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── endpoints.py         # API route definitions
+│   │   ├── db.py                    # Database session and engine
+│   │   ├── cache.py                 # Redis cache logic
+│   │   ├── dependencies.py          # Dependency injection (auth, db, cache)
+│   │   ├── config.py                # Settings from environment variables
+│   │   └── requirements.txt         # Python dependencies
+│   └── shared/
+│       ├── __init__.py
+│       ├── auth.py                  # Keycloak/JWT utilities
+│       └── utils.py                 # Shared utility functions
 ├── frontend/
-│   ├── Dockerfile                   # Frontend container build
-│   ├── public/
+│   ├── Dockerfile                   # Dockerfile for React app
+│   ├── vite.config.ts               # Vite configuration
+│   ├── tsconfig.json                # TypeScript configuration
+│   ├── package.json                 # NPM dependencies
+│   ├── src/
+│   │   ├── main.tsx                 # React entry point
+│   │   ├── App.tsx                  # Root component
+│   │   ├── api/
+│   │   │   ├── kpiApi.ts            # API client for KPIs
+│   │   │   ├── ordenApi.ts          # API client for ordenes
+│   │   │   ├── plantaApi.ts         # API client for plantas
+│   │   │   ├── centroApi.ts         # API client for centros
+│   │   │   ├── usuarioApi.ts        # API client for usuarios
+│   │   ├── hooks/
+│   │   │   ├── useKpis.ts           # React hook for KPIs
+│   │   │   ├── useOrdenes.ts        # React hook for ordenes
+│   │   │   ├── usePlantas.ts        # React hook for plantas
+│   │   │   ├── useCentros.ts        # React hook for centros
+│   │   │   ├── useUsuarios.ts       # React hook for usuarios
+│   │   ├── components/
+│   │   │   ├── Dashboard.tsx        # Dashboard visualization
+│   │   │   ├── OrdenList.tsx        # List of ordenes
+│   │   │   ├── OrdenForm.tsx        # Form to create orden
+│   │   │   ├── PlantaList.tsx       # List of plantas
+│   │   │   ├── CentroList.tsx       # List of centros
+│   │   │   ├── UsuarioList.tsx      # List of usuarios
+│   │   ├── types/
+│   │   │   ├── models.ts            # TypeScript interfaces (Planta, Centro, Orden, Usuario, KPIResponse)
 │   │   └── index.html               # HTML entry point
-│   └── src/
-│       ├── main.tsx                 # React entry point
-│       ├── App.tsx                  # Root component
-│       ├── api/
-│       │   ├── catalogoApi.ts
-│       │   ├── pedidoApi.ts
-│       │   ├── usuarioApi.ts
-│       │   └── notificacionApi.ts
-│       ├── hooks/
-│       │   ├── useCatalogo.ts
-│       │   ├── usePedidos.ts
-│       │   ├── useUsuarios.ts
-│       │   └── useNotificaciones.ts
-│       ├── components/
-│       │   ├── CatalogoList.tsx
-│       │   ├── CatalogoForm.tsx
-│       │   ├── PedidoList.tsx
-│       │   ├── PedidoForm.tsx
-│       │   ├── UsuarioList.tsx
-│       │   ├── UsuarioForm.tsx
-│       │   ├── NotificacionList.tsx
-│       │   └── NotificacionForm.tsx
-│       ├── types/
-│       │   └── models.ts            # Frontend TypeScript interfaces (mirrors backend/shared/models.ts)
-│       └── utils/
-│           └── format.ts
+├── kong/
+│   ├── kong.yml                     # Kong declarative config
+│   └── Dockerfile                   # Kong Dockerfile
+├── keycloak/
+│   ├── Dockerfile                   # Keycloak Dockerfile
+│   └── realm-export.json            # Keycloak realm config
+├── k8s/
+│   ├── api-service-deployment.yaml  # Kubernetes deployment for backend
+│   ├── frontend-deployment.yaml     # Kubernetes deployment for frontend
+│   ├── postgres-deployment.yaml     # Kubernetes deployment for PostgreSQL
+│   ├── redis-deployment.yaml        # Kubernetes deployment for Redis
+│   ├── kong-deployment.yaml         # Kubernetes deployment for Kong
+│   ├── keycloak-deployment.yaml     # Kubernetes deployment for Keycloak
+│   └── namespace.yaml               # Kubernetes namespace definition
 ```
 
 ---
 
 ## 5. ENVIRONMENT VARIABLES
 
-| Name                        | Type   | Description                                               | Example Value                      |
-|-----------------------------|--------|-----------------------------------------------------------|------------------------------------|
-| NODE_ENV                    | string | Node environment ("development", "production")            | production                         |
-| PORT                        | number | Express listening port (pedido-service)                   | 8001                               |
-| POSTGRES_HOST               | string | PostgreSQL hostname                                       | postgres                           |
-| POSTGRES_PORT               | number | PostgreSQL port                                           | 5432                               |
-| POSTGRES_DB                 | string | PostgreSQL database name                                  | distroviz                          |
-| POSTGRES_USER               | string | PostgreSQL username                                       | distroviz_user                     |
-| POSTGRES_PASSWORD           | string | PostgreSQL password                                       | secretpassword                     |
-| REDIS_HOST                  | string | Redis hostname                                            | redis                              |
-| REDIS_PORT                  | number | Redis port                                                | 6379                               |
-| REDIS_PASSWORD              | string | Redis password (if set)                                   |                                    |
-| RABBITMQ_HOST               | string | RabbitMQ hostname                                         | rabbitmq                           |
-| RABBITMQ_PORT               | number | RabbitMQ port                                             | 5672                               |
-| RABBITMQ_USER               | string | RabbitMQ username                                         | guest                              |
-| RABBITMQ_PASSWORD           | string | RabbitMQ password                                         | guest                              |
-| JWT_SECRET                  | string | JWT secret for authentication (if implemented)            | supersecretjwtkey                  |
-| FRONTEND_URL                | string | Public URL for frontend                                   | http://localhost:3000              |
-| API_GATEWAY_URL             | string | Kong API Gateway URL                                      | http://localhost:8000              |
-| AWS_REGION                  | string | AWS region for deployment                                 | us-east-1                          |
-| AWS_RDS_ENDPOINT            | string | AWS RDS PostgreSQL endpoint                               | distroviz-db.xxxxxxx.rds.amazonaws.com |
-| AWS_ELASTICACHE_ENDPOINT    | string | AWS ElastiCache Redis endpoint                            | distroviz-redis.xxxxxxx.cache.amazonaws.com |
-| AWS_EKS_CLUSTER_NAME        | string | AWS EKS cluster name                                      | distroviz-eks                      |
+| Name                    | Type   | Description                                         | Example Value                |
+|-------------------------|--------|-----------------------------------------------------|-----------------------------|
+| POSTGRES_HOST           | string | PostgreSQL host                                     | postgres                    |
+| POSTGRES_PORT           | int    | PostgreSQL port                                     | 5432                        |
+| POSTGRES_DB             | string | PostgreSQL database name                            | distroviz                   |
+| POSTGRES_USER           | string | PostgreSQL username                                 | distroviz                   |
+| POSTGRES_PASSWORD       | string | PostgreSQL password                                 | secretpassword              |
+| REDIS_HOST              | string | Redis host                                          | redis                       |
+| REDIS_PORT              | int    | Redis port                                          | 6379                        |
+| REDIS_DB                | int    | Redis database index                                | 0                           |
+| REDIS_PASSWORD          | string | Redis password (optional)                           |                             |
+| KEYCLOAK_URL            | string | Keycloak server URL                                 | http://keycloak:8080        |
+| KEYCLOAK_REALM          | string | Keycloak realm name                                 | distroviz                   |
+| KEYCLOAK_CLIENT_ID      | string | Keycloak client ID                                  | distroviz-frontend          |
+| KEYCLOAK_CLIENT_SECRET  | string | Keycloak client secret                              | <client-secret>             |
+| API_PORT                | int    | Port for FastAPI backend                            | 8001                        |
+| FRONTEND_PORT           | int    | Port for React frontend                             | 3000                        |
+| KONG_ADMIN_URL          | string | Kong admin API URL                                  | http://kong:8001            |
+| KONG_PROXY_URL          | string | Kong proxy URL                                      | http://kong:8000            |
+| JWT_PUBLIC_KEY          | string | JWT public key for backend validation               | -----BEGIN PUBLIC KEY-----  |
+| NODE_ENV                | string | Node.js environment                                 | development                 |
 
 ---
 
 ## 6. IMPORT CONTRACTS
 
-### Backend Shared Module Exports
+### Backend (Python/FastAPI)
 
-- `backend/shared/models.ts`
-  - `export interface Catalogo`
-  - `export interface Pedido`
-  - `export interface PedidoItem`
-  - `export interface Usuario`
-  - `export interface Notificacion`
+- `from schemas import Planta, Centro, Usuario, Orden, KPIResponse`
+- `from crud import get_ordenes, create_orden, get_plantas, get_centros, get_usuarios, get_kpis`
+- `from db import get_db_session`
+- `from cache import get_cache, set_cache`
+- `from shared.auth import verify_jwt, get_current_user`
+- `from config import settings`
 
-- `backend/shared/db.ts`
-  - `export const dbPool`
-  - `export async function query(sql: string, params?: any[]): Promise<any>`
+### Frontend (React/TypeScript)
 
-- `backend/shared/cache.ts`
-  - `export const redisClient`
-  - `export async function getCache(key: string): Promise<any>`
-  - `export async function setCache(key: string, value: any, ttl?: number): Promise<void>`
-
-### Pedido Service Exports
-
-- `backend/pedido-service/src/routes/catalogo.ts`
-  - `export default catalogoRouter`
-- `backend/pedido-service/src/routes/pedido.ts`
-  - `export default pedidoRouter`
-- `backend/pedido-service/src/routes/usuario.ts`
-  - `export default usuarioRouter`
-- `backend/pedido-service/src/routes/notificacion.ts`
-  - `export default notificacionRouter`
-
-- `backend/pedido-service/src/controllers/catalogoController.ts`
-  - `export const getCatalogo`
-  - `export const getCatalogoById`
-  - `export const createCatalogo`
-  - `export const updateCatalogo`
-  - `export const deleteCatalogo`
-
-- `backend/pedido-service/src/controllers/pedidoController.ts`
-  - `export const getPedidos`
-  - `export const getPedidoById`
-  - `export const createPedido`
-  - `export const updatePedido`
-  - `export const deletePedido`
-
-- `backend/pedido-service/src/controllers/usuarioController.ts`
-  - `export const getUsuarios`
-  - `export const getUsuarioById`
-  - `export const createUsuario`
-  - `export const updateUsuario`
-  - `export const deleteUsuario`
-
-- `backend/pedido-service/src/controllers/notificacionController.ts`
-  - `export const getNotificaciones`
-  - `export const getNotificacionById`
-  - `export const createNotificacion`
-  - `export const deleteNotificacion`
-
-- `backend/pedido-service/src/events/pedidoEvents.ts`
-  - `export async function publishPedidoCreado(pedido: Pedido): Promise<void>`
-
-### Frontend Exports
-
-- `frontend/src/types/models.ts`
-  - `export interface Catalogo`
-  - `export interface Pedido`
-  - `export interface PedidoItem`
-  - `export interface Usuario`
-  - `export interface Notificacion`
-
-- `frontend/src/api/catalogoApi.ts`
-  - `export async function fetchCatalogo(): Promise<Catalogo[]>`
-  - `export async function fetchCatalogoById(id: number): Promise<Catalogo>`
-  - `export async function createCatalogo(data: Omit<Catalogo, 'id'>): Promise<Catalogo>`
-  - `export async function updateCatalogo(id: number, data: Omit<Catalogo, 'id'>): Promise<Catalogo>`
-  - `export async function deleteCatalogo(id: number): Promise<{ success: boolean }>`
-- (Analogous exports for `pedidoApi.ts`, `usuarioApi.ts`, `notificacionApi.ts`)
-
-- `frontend/src/hooks/useCatalogo.ts`
-  - `export function useCatalogo(): { catalogo: Catalogo[], loading: boolean, error: string | null, createCatalogo: (data: Omit<Catalogo, 'id'>) => Promise<void>, updateCatalogo: (id: number, data: Omit<Catalogo, 'id'>) => Promise<void>, deleteCatalogo: (id: number) => Promise<void> }`
-- (Analogous exports for `usePedidos.ts`, `useUsuarios.ts`, `useNotificaciones.ts`)
+- `import { Planta, Centro, Usuario, Orden, KPIResponse } from '../types/models'`
+- `import { useKpis } from '../hooks/useKpis'`
+- `import { useOrdenes } from '../hooks/useOrdenes'`
+- `import { usePlantas } from '../hooks/usePlantas'`
+- `import { useCentros } from '../hooks/useCentros'`
+- `import { useUsuarios } from '../hooks/useUsuarios'`
+- `import { getKpis } from '../api/kpiApi'`
+- `import { getOrdenes, createOrden } from '../api/ordenApi'`
+- `import { getPlantas } from '../api/plantaApi'`
+- `import { getCentros } from '../api/centroApi'`
+- `import { getUsuarios } from '../api/usuarioApi'`
 
 ---
 
@@ -458,55 +334,29 @@ export interface Notificacion {
 
 ### React Hooks
 
-- `useCatalogo()` → `{ catalogo, loading, error, createCatalogo, updateCatalogo, deleteCatalogo }`
-  - `catalogo: Catalogo[]`
-  - `loading: boolean`
-  - `error: string | null`
-  - `createCatalogo(data: Omit<Catalogo, 'id'>): Promise<void>`
-  - `updateCatalogo(id: number, data: Omit<Catalogo, 'id'>): Promise<void>`
-  - `deleteCatalogo(id: number): Promise<void>`
-
-- `usePedidos()` → `{ pedidos, loading, error, createPedido, updatePedido, deletePedido }`
-  - `pedidos: Pedido[]`
-  - `loading: boolean`
-  - `error: string | null`
-  - `createPedido(data: Omit<Pedido, 'id'>): Promise<void>`
-  - `updatePedido(id: number, data: Partial<Pedido>): Promise<void>`
-  - `deletePedido(id: number): Promise<void>`
-
-- `useUsuarios()` → `{ usuarios, loading, error, createUsuario, updateUsuario, deleteUsuario }`
-  - `usuarios: Usuario[]`
-  - `loading: boolean`
-  - `error: string | null`
-  - `createUsuario(data: Omit<Usuario, 'id'>): Promise<void>`
-  - `updateUsuario(id: number, data: Omit<Usuario, 'id'>): Promise<void>`
-  - `deleteUsuario(id: number): Promise<void>`
-
-- `useNotificaciones()` → `{ notificaciones, loading, error, createNotificacion, deleteNotificacion }`
-  - `notificaciones: Notificacion[]`
-  - `loading: boolean`
-  - `error: string | null`
-  - `createNotificacion(data: Omit<Notificacion, 'id'>): Promise<void>`
-  - `deleteNotificacion(id: number): Promise<void>`
+- `useKpis() → { kpis: KPIResponse | null, loading: boolean, error: string | null, refresh: () => void }`
+- `useOrdenes() → { ordenes: Orden[], loading: boolean, error: string | null, createOrden: (data: Omit<Orden, 'id'>) => Promise<void> }`
+- `usePlantas() → { plantas: Planta[], loading: boolean, error: string | null }`
+- `useCentros() → { centros: Centro[], loading: boolean, error: string | null }`
+- `useUsuarios() → { usuarios: Usuario[], loading: boolean, error: string | null }`
 
 ### Reusable Components
 
-- `CatalogoList` props: `{ catalogo: Catalogo[], onEdit: (id: number) => void, onDelete: (id: number) => void, deletingId: number | null }`
-- `CatalogoForm` props: `{ onSubmit: (data: Omit<Catalogo, 'id'>) => void, loading: boolean, initialData?: Omit<Catalogo, 'id'> }`
-- `PedidoList` props: `{ pedidos: Pedido[], onEdit: (id: number) => void, onDelete: (id: number) => void, deletingId: number | null }`
-- `PedidoForm` props: `{ onSubmit: (data: Omit<Pedido, 'id'>) => void, loading: boolean, initialData?: Omit<Pedido, 'id'> }`
-- `UsuarioList` props: `{ usuarios: Usuario[], onEdit: (id: number) => void, onDelete: (id: number) => void, deletingId: number | null }`
-- `UsuarioForm` props: `{ onSubmit: (data: Omit<Usuario, 'id'>) => void, loading: boolean, initialData?: Omit<Usuario, 'id'> }`
-- `NotificacionList` props: `{ notificaciones: Notificacion[], onDelete: (id: number) => void, deletingId: number | null }`
-- `NotificacionForm` props: `{ onSubmit: (data: Omit<Notificacion, 'id'>) => void, loading: boolean, initialData?: Omit<Notificacion, 'id'> }`
+- `Dashboard` props: `{ kpis: KPIResponse | null, loading: boolean }`
+- `OrdenList` props: `{ ordenes: Orden[], loading: boolean }`
+- `OrdenForm` props: `{ onSubmit: (data: Omit<Orden, 'id'>) => void, loading: boolean }`
+- `PlantaList` props: `{ plantas: Planta[], loading: boolean }`
+- `CentroList` props: `{ centros: Centro[], loading: boolean }`
+- `UsuarioList` props: `{ usuarios: Usuario[], loading: boolean }`
 
 ---
 
 ## 8. FILE EXTENSION CONVENTION
 
 - **Frontend files:** `.tsx` (TypeScript React)
-- **Backend files:** `.ts` (TypeScript)
-- **Project language:** TypeScript (all code files use `.ts` or `.tsx`)
-- **Frontend entry point:** `/src/main.tsx` (as referenced in `public/index.html` via `<script src="/src/main.tsx">`)
-- **No `.js` or `.jsx` files are permitted.**
-- **All shared types/interfaces must be defined in `.ts` files and imported verbatim.**
+- **Project language:** TypeScript (frontend), Python (backend)
+- **Entry point:** `/src/main.tsx` (as referenced in `frontend/src/index.html`)
+
+---
+
+**All field names, types, and API contracts must be used verbatim as specified above. All service ports, Dockerfile EXPOSE, and CMD must match the PORT TABLE. All shared modules in `backend/shared/` must be copied into every backend service image. All React hooks and component props must use the exact names and signatures as listed.**

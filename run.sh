@@ -3,12 +3,12 @@ set -e
 
 echo "Checking Docker..."
 if ! command -v docker &> /dev/null; then
-    echo "Docker is not installed. Please install Docker."
+    echo "Docker is not installed. Please install Docker first."
     exit 1
 fi
 
 if ! command -v docker-compose &> /dev/null; then
-    echo "Docker Compose is not installed. Please install Docker Compose."
+    echo "docker-compose is not installed. Please install docker-compose first."
     exit 1
 fi
 
@@ -16,18 +16,13 @@ echo "Building and starting services..."
 docker-compose up --build -d
 
 echo "Waiting for services to be healthy..."
-sleep 30
-
-echo "Checking service health..."
-docker-compose ps
+sleep 10
 
 echo ""
-echo "=========================================="
-echo "Services are running!"
-echo "Frontend: http://localhost:5173"
-echo "API Gateway (Kong): http://localhost:8000"
-echo "Health Check: http://localhost:8000/health"
-echo "=========================================="
+echo "Services are now running:"
+echo "  - Frontend: http://localhost:3000"
+echo "  - API: http://localhost:8001"
+echo "  - Health check: http://localhost:8001/health"
 echo ""
-echo "To view logs: docker-compose logs -f"
-echo "To stop services: docker-compose down"
+echo "Run 'docker-compose logs -f' to see logs"
+echo "Run 'docker-compose down' to stop services"

@@ -1,44 +1,26 @@
-import React from 'react';
 import { Usuario } from '../types/models';
 
-interface Props {
+interface UsuarioListProps {
   usuarios: Usuario[];
-  onEdit: (id: number) => void;
-  onDelete: (id: number) => void;
-  deletingId: number | null;
+  loading: boolean;
 }
 
-export function UsuarioList({ usuarios, onEdit, onDelete, deletingId }: Props) {
+export function UsuarioList({ usuarios, loading }: UsuarioListProps) {
+  if (loading) {
+    return <div>Cargando usuarios...</div>;
+  }
+
   return (
-    <div className="usuario-list">
+    <div>
       <h2>Usuarios</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Email</th>
-            <th>Rol</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {usuarios.map((usuario) => (
-            <tr key={usuario.id}>
-              <td>{usuario.id}</td>
-              <td>{usuario.nombre}</td>
-              <td>{usuario.email}</td>
-              <td>{usuario.rol}</td>
-              <td>
-                <button onClick={() => onEdit(usuario.id)} disabled={deletingId !== null}>Editar</button>
-                <button onClick={() => onDelete(usuario.id)} disabled={deletingId !== null}>
-                  {deletingId === usuario.id ? 'Eliminando...' : 'Eliminar'}
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+        {usuarios.map((usuario) => (
+          <div key={usuario.id} style={{ background: 'white', padding: '1rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+            <h3>{usuario.nombre}</h3>
+            <p style={{ margin: 0, color: '#666' }}>{usuario.email}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,28 +1,33 @@
 {
-  "name": "frontend",
+  "name": "distrovis-frontend",
   "version": "1.0.0",
-  "description": "Distrovis Frontend",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "recharts": "^2.10.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17",
-    "@vitejs/plugin-react": "^4.2.1",
+    "@types/react": "^18.2.22",
+    "@types/react-dom": "^18.2.7",
+    "@typescript-eslint/eslint-plugin": "^6.7.2",
+    "@typescript-eslint/parser": "^6.7.2",
+    "@vitejs/plugin-react": "^4.1.0",
     "@vitest/coverage-v8": "^4.1.5",
+    "eslint": "^8.49.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.3",
     "jsdom": "^29.0.2",
-    "typescript": "^5.3.2",
-    "vite": "^5.0.8",
+    "typescript": "5.2.2",
+    "vite": "4.4.9",
     "vitest": "^4.1.5"
   }
 }

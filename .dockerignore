@@ -1,11 +1,7 @@
 node_modules/
 .git/
-.vscode/
-.nyc_output/
-coverage/
-dist/
-build/
 *.log
+dist/
 .env
-.DS_Store
-.idea/
+__pycache__/
+*.pyc

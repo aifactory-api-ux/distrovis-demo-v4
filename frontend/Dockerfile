@@ -1,14 +1,17 @@
-FROM node:20-slim
+FROM node:20-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY frontend/package*.json ./
 RUN npm install
 
-COPY . .
+COPY frontend/vite.config.ts ./
+COPY frontend/tsconfig*.json ./
+COPY frontend/index.html ./
+COPY frontend/src/ ./src/
 
 RUN npm run build
 
-EXPOSE 5173
+EXPOSE 3000
 
-CMD ["npm", "run", "preview"]
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "3000"]
