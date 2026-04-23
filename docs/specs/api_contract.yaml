@@ -1,0 +1,239 @@
+# API_CONTRACT.md
+
+---
+
+## Auth Service
+
+### POST /auth/login
+
+| Property         | Value                |
+|------------------|---------------------|
+| HTTP Method      | POST                |
+| Path             | /auth/login         |
+| Auth Required    | No                  |
+| Request Body     | `AuthRequest`       |
+| Response Body    | `AuthResponse`      |
+| Status Codes     | 200                 |
+
+#### Request Body: AuthRequest
+
+| Field    | Type     | Required |
+|----------|----------|----------|
+| email    | string   | Yes      |
+| password | string   | Yes      |
+
+#### Response Body: AuthResponse
+
+| Field | Type   |
+|-------|--------|
+| token | string |
+| user  | User   |
+
+---
+
+### GET /auth/me
+
+| Property         | Value                |
+|------------------|---------------------|
+| HTTP Method      | GET                 |
+| Path             | /auth/me            |
+| Auth Required    | Yes (Bearer token)  |
+| Request Body     | None                |
+| Response Body    | `User`              |
+| Status Codes     | 200                 |
+
+#### Response Body: User
+
+| Field         | Type                              |
+|---------------|-----------------------------------|
+| id            | string                            |
+| email         | string                            |
+| password_hash | string                            |
+| role          | 'admin' \| 'operator' \| 'viewer' |
+
+---
+
+## Order Service
+
+### POST /orders
+
+| Property         | Value                |
+|------------------|---------------------|
+| HTTP Method      | POST                |
+| Path             | /orders             |
+| Auth Required    | Yes (Bearer token)  |
+| Request Body     | `CreateOrderRequest`|
+| Response Body    | `CreateOrderResponse`|
+| Status Codes     | 201                 |
+
+#### Request Body: CreateOrderRequest
+
+| Field                  | Type     | Required |
+|------------------------|----------|----------|
+| plant_id               | string   | Yes      |
+| distribution_center_id | string   | Yes      |
+| items                  | array of objects | Yes |
+
+Each item in `items`:
+
+| Field        | Type     | Required |
+|--------------|----------|----------|
+| product_name | string   | Yes      |
+| quantity     | number   | Yes      |
+| unit_price   | number   | Yes      |
+
+#### Response Body: CreateOrderResponse
+
+| Field | Type   |
+|-------|--------|
+| order | Order  |
+
+---
+
+### GET /orders
+
+| Property         | Value                |
+|------------------|---------------------|
+| HTTP Method      | GET                 |
+| Path             | /orders             |
+| Auth Required    | Yes (Bearer token)  |
+| Request Body     | None                |
+| Response Body    | `OrderListResponse` |
+| Status Codes     | 200                 |
+
+#### Response Body: OrderListResponse
+
+| Field  | Type         |
+|--------|--------------|
+| orders | Order array  |
+
+---
+
+### GET /orders/:id
+
+| Property         | Value                |
+|------------------|---------------------|
+| HTTP Method      | GET                 |
+| Path             | /orders/:id         |
+| Auth Required    | Yes (Bearer token)  |
+| Request Body     | None                |
+| Response Body    | `Order`             |
+| Status Codes     | 200                 |
+
+---
+
+### GET /kpi
+
+| Property         | Value                |
+|------------------|---------------------|
+| HTTP Method      | GET                 |
+| Path             | /kpi                |
+| Auth Required    | Yes (Bearer token)  |
+| Request Body     | None                |
+| Response Body    | `KPIResponse`       |
+| Status Codes     | 200                 |
+
+#### Response Body: KPIResponse
+
+| Field            | Type   |
+|------------------|--------|
+| total_units      | number |
+| total_orders     | number |
+| completed_orders | number |
+| pending_orders   | number |
+
+---
+
+## Plant Service
+
+### GET /plants
+
+| Property         | Value                |
+|------------------|---------------------|
+| HTTP Method      | GET                 |
+| Path             | /plants             |
+| Auth Required    | Yes (Bearer token)  |
+| Request Body     | None                |
+| Response Body    | `{ plants: Plant[] }`|
+| Status Codes     | 200                 |
+
+#### Response Body
+
+| Field  | Type         |
+|--------|--------------|
+| plants | Plant array  |
+
+---
+
+## Distribution Center Service
+
+### GET /distribution-centers
+
+| Property         | Value                |
+|------------------|---------------------|
+| HTTP Method      | GET                 |
+| Path             | /distribution-centers|
+| Auth Required    | Yes (Bearer token)  |
+| Request Body     | None                |
+| Response Body    | `{ distribution_centers: DistributionCenter[] }`|
+| Status Codes     | 200                 |
+
+#### Response Body
+
+| Field                | Type                      |
+|----------------------|--------------------------|
+| distribution_centers | DistributionCenter array |
+
+---
+
+## Data Schemas
+
+### User
+
+| Field         | Type                              |
+|---------------|-----------------------------------|
+| id            | string                            |
+| email         | string                            |
+| password_hash | string                            |
+| role          | 'admin' \| 'operator' \| 'viewer' |
+
+### Plant
+
+| Field    | Type   |
+|----------|--------|
+| id       | string |
+| name     | string |
+| location | string |
+
+### DistributionCenter
+
+| Field   | Type   |
+|---------|--------|
+| id      | string |
+| name    | string |
+| address | string |
+
+### Order
+
+| Field                  | Type                                   |
+|------------------------|----------------------------------------|
+| id                     | string                                 |
+| user_id                | string                                 |
+| plant_id               | string                                 |
+| distribution_center_id | string                                 |
+| status                 | 'pending' \| 'processing' \| 'completed' \| 'cancelled' |
+| created_at             | string (ISO 8601 datetime)             |
+| updated_at             | string (ISO 8601 datetime)             |
+| items                  | OrderItem array                        |
+
+### OrderItem
+
+| Field        | Type   |
+|--------------|--------|
+| id           | string |
+| order_id     | string |
+| product_name | string |
+| quantity     | number |
+| unit_price   | number |
+
+---
