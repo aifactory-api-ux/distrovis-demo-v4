@@ -1,0 +1,70 @@
+_format_version: "3.0"
+services:
+  - _comment: Pedido Service
+    url: http://pedido-service:8001
+    routes:
+    - name: catalogo
+      paths:
+        - /catalogo
+      methods:
+        - GET
+        - POST
+      plugins: []
+    - name: catalogo-id
+      paths:
+        - /catalogo
+      methods:
+        - GET
+        - PUT
+        - DELETE
+      plugins: []
+    - name: pedidos
+      paths:
+        - /pedidos
+      methods:
+        - GET
+        - POST
+      plugins: []
+    - name: pedidos-id
+      paths:
+        - /pedidos
+      methods:
+        - GET
+        - PUT
+        - DELETE
+      plugins: []
+    - name: usuarios
+      paths:
+        - /usuarios
+      methods:
+        - GET
+        - POST
+      plugins: []
+    - name: usuarios-id
+      paths:
+        - /usuarios
+      methods:
+        - GET
+        - PUT
+        - DELETE
+      plugins: []
+    - name: notificaciones
+      paths:
+        - /notificaciones
+      methods:
+        - GET
+        - POST
+      plugins: []
+    - name: notificaciones-id
+      paths:
+        - /notificaciones
+      methods:
+        - GET
+        - DELETE
+      plugins: []
+    - name: health
+      paths:
+        - /health
+      methods:
+        - GET
+      plugins: []

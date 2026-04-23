@@ -3,30 +3,21 @@
 ## 1. TECHNOLOGY STACK
 
 - **Backend**
-  - Node.js v20.11.1
-  - Express.js v4.18.2
-  - TypeScript v5.2.2
-  - PostgreSQL v15
-  - Redis v7
-  - RabbitMQ v3.12
+  - Node.js 20
+  - Express.js 4.18
+  - TypeScript 5
+  - PostgreSQL 15 (AWS RDS PostgreSQL)
+  - Redis 7 (AWS ElastiCache Redis)
+  - RabbitMQ 3.12
 - **Frontend**
-  - React v18.2.0
-  - TypeScript v5.2.2
-- **API Gateway**
-  - Kong v3.4
-- **Containerization & Orchestration**
-  - Docker v24
-  - Docker Compose v2.20
-  - Kubernetes v1.28
-- **Other**
-  - dotenv v16.3.1 (backend)
-  - pg v8.11.1 (backend)
-  - ioredis v5.3.2 (backend)
-  - amqplib v0.10.3 (backend)
-  - axios v1.6.2 (frontend)
-  - react-router-dom v6.16.0 (frontend)
-  - @reduxjs/toolkit v1.9.5 (frontend)
-  - react-redux v8.1.2 (frontend)
+  - React 18
+  - TypeScript 5
+- **Infrastructure**
+  - Docker 24
+  - Kubernetes 1.28 (AWS EKS)
+  - Kong API Gateway 3.4
+  - Terraform 1.6
+  - GitHub Actions
 
 ---
 
@@ -34,187 +25,220 @@
 
 ### TypeScript Interfaces (Backend & Frontend)
 
-#### User
-
 ```typescript
-export interface User {
-  id: string;
+// Catalogo
+export interface Catalogo {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  precio: number;
+  stock: number;
+}
+
+// Pedido
+export interface Pedido {
+  id: number;
+  usuario_id: number;
+  fecha: string; // ISO date string (YYYY-MM-DD)
+  estado: string;
+  total: number;
+  items: PedidoItem[];
+}
+
+// PedidoItem (relation between Pedido and Catalogo)
+export interface PedidoItem {
+  catalogo_id: number;
+  cantidad: number;
+  precio_unitario: number;
+}
+
+// Usuario
+export interface Usuario {
+  id: number;
+  nombre: string;
   email: string;
-  password_hash: string;
-  role: 'admin' | 'operator' | 'viewer';
+  rol: string;
+}
+
+// Notificacion
+export interface Notificacion {
+  id: number;
+  pedido_id: number;
+  tipo: string;
+  mensaje: string;
+  fecha_envio: string; // ISO datetime string
 }
 ```
 
-#### Plant
+### PostgreSQL Table Schemas
 
-```typescript
-export interface Plant {
-  id: string;
-  name: string;
-  location: string;
-}
-```
+- **catalogo**
+  - id: SERIAL PRIMARY KEY
+  - nombre: VARCHAR(255) NOT NULL
+  - descripcion: TEXT NOT NULL
+  - precio: NUMERIC(12,2) NOT NULL
+  - stock: INTEGER NOT NULL
 
-#### DistributionCenter
+- **pedido**
+  - id: SERIAL PRIMARY KEY
+  - usuario_id: INTEGER NOT NULL REFERENCES usuario(id)
+  - fecha: DATE NOT NULL
+  - estado: VARCHAR(50) NOT NULL
+  - total: NUMERIC(12,2) NOT NULL
 
-```typescript
-export interface DistributionCenter {
-  id: string;
-  name: string;
-  address: string;
-}
-```
+- **pedido_item**
+  - pedido_id: INTEGER NOT NULL REFERENCES pedido(id)
+  - catalogo_id: INTEGER NOT NULL REFERENCES catalogo(id)
+  - cantidad: INTEGER NOT NULL
+  - precio_unitario: NUMERIC(12,2) NOT NULL
+  - PRIMARY KEY (pedido_id, catalogo_id)
 
-#### Order
+- **usuario**
+  - id: SERIAL PRIMARY KEY
+  - nombre: VARCHAR(255) NOT NULL
+  - email: VARCHAR(255) NOT NULL UNIQUE
+  - rol: VARCHAR(50) NOT NULL
 
-```typescript
-export interface Order {
-  id: string;
-  user_id: string;
-  plant_id: string;
-  distribution_center_id: string;
-  status: 'pending' | 'processing' | 'completed' | 'cancelled';
-  created_at: string; // ISO 8601 datetime
-  updated_at: string; // ISO 8601 datetime
-  items: OrderItem[];
-}
-```
-
-#### OrderItem
-
-```typescript
-export interface OrderItem {
-  id: string;
-  order_id: string;
-  product_name: string;
-  quantity: number;
-  unit_price: number;
-}
-```
-
-#### AuthRequest
-
-```typescript
-export interface AuthRequest {
-  email: string;
-  password: string;
-}
-```
-
-#### AuthResponse
-
-```typescript
-export interface AuthResponse {
-  token: string;
-  user: User;
-}
-```
-
-#### CreateOrderRequest
-
-```typescript
-export interface CreateOrderRequest {
-  plant_id: string;
-  distribution_center_id: string;
-  items: {
-    product_name: string;
-    quantity: number;
-    unit_price: number;
-  }[];
-}
-```
-
-#### CreateOrderResponse
-
-```typescript
-export interface CreateOrderResponse {
-  order: Order;
-}
-```
-
-#### OrderListResponse
-
-```typescript
-export interface OrderListResponse {
-  orders: Order[];
-}
-```
-
-#### KPIResponse
-
-```typescript
-export interface KPIResponse {
-  total_units: number;
-  total_orders: number;
-  completed_orders: number;
-  pending_orders: number;
-}
-```
+- **notificacion**
+  - id: SERIAL PRIMARY KEY
+  - pedido_id: INTEGER NOT NULL REFERENCES pedido(id)
+  - tipo: VARCHAR(50) NOT NULL
+  - mensaje: TEXT NOT NULL
+  - fecha_envio: TIMESTAMP NOT NULL
 
 ---
 
 ## 3. API ENDPOINTS
 
-### Auth Service
+### Catalogo
 
-#### POST /auth/login
+- **GET /catalogo**
+  - Response: `Catalogo[]`
 
-- **Request Body:** `AuthRequest`
-- **Response:** `AuthResponse`
+- **GET /catalogo/:id**
+  - Response: `Catalogo`
 
-#### GET /auth/me
+- **POST /catalogo**
+  - Request body:
+    ```json
+    {
+      "nombre": "string",
+      "descripcion": "string",
+      "precio": number,
+      "stock": number
+    }
+    ```
+  - Response: `Catalogo`
 
-- **Headers:** `Authorization: Bearer <token>`
-- **Response:** `User`
+- **PUT /catalogo/:id**
+  - Request body:
+    ```json
+    {
+      "nombre": "string",
+      "descripcion": "string",
+      "precio": number,
+      "stock": number
+    }
+    ```
+  - Response: `Catalogo`
 
----
+- **DELETE /catalogo/:id**
+  - Response: `{ "success": boolean }`
 
-### Order Service
+### Pedido
 
-#### POST /orders
+- **GET /pedidos**
+  - Response: `Pedido[]`
 
-- **Headers:** `Authorization: Bearer <token>`
-- **Request Body:** `CreateOrderRequest`
-- **Response:** `CreateOrderResponse`
-- **Status:** 201 Created
+- **GET /pedidos/:id**
+  - Response: `Pedido`
 
-#### GET /orders
+- **POST /pedidos**
+  - Request body:
+    ```json
+    {
+      "usuario_id": number,
+      "fecha": "YYYY-MM-DD",
+      "estado": "string",
+      "total": number,
+      "items": [
+        {
+          "catalogo_id": number,
+          "cantidad": number,
+          "precio_unitario": number
+        }
+      ]
+    }
+    ```
+  - Response: `Pedido`
 
-- **Headers:** `Authorization: Bearer <token>`
-- **Response:** `OrderListResponse`
-- **Status:** 200 OK
+- **PUT /pedidos/:id**
+  - Request body:
+    ```json
+    {
+      "estado": "string"
+    }
+    ```
+  - Response: `Pedido`
 
-#### GET /orders/:id
+- **DELETE /pedidos/:id**
+  - Response: `{ "success": boolean }`
 
-- **Headers:** `Authorization: Bearer <token>`
-- **Response:** `Order`
-- **Status:** 200 OK
+### Usuario
 
-#### GET /kpi
+- **GET /usuarios**
+  - Response: `Usuario[]`
 
-- **Headers:** `Authorization: Bearer <token>`
-- **Response:** `KPIResponse`
-- **Status:** 200 OK
+- **GET /usuarios/:id**
+  - Response: `Usuario`
 
----
+- **POST /usuarios**
+  - Request body:
+    ```json
+    {
+      "nombre": "string",
+      "email": "string",
+      "rol": "string"
+    }
+    ```
+  - Response: `Usuario`
 
-### Plant Service
+- **PUT /usuarios/:id**
+  - Request body:
+    ```json
+    {
+      "nombre": "string",
+      "email": "string",
+      "rol": "string"
+    }
+    ```
+  - Response: `Usuario`
 
-#### GET /plants
+- **DELETE /usuarios/:id**
+  - Response: `{ "success": boolean }`
 
-- **Headers:** `Authorization: Bearer <token>`
-- **Response:** `{ plants: Plant[] }`
-- **Status:** 200 OK
+### Notificacion
 
----
+- **GET /notificaciones**
+  - Response: `Notificacion[]`
 
-### Distribution Center Service
+- **GET /notificaciones/:id**
+  - Response: `Notificacion`
 
-#### GET /distribution-centers
+- **POST /notificaciones**
+  - Request body:
+    ```json
+    {
+      "pedido_id": number,
+      "tipo": "string",
+      "mensaje": "string",
+      "fecha_envio": "YYYY-MM-DDTHH:MM:SSZ"
+    }
+    ```
+  - Response: `Notificacion`
 
-- **Headers:** `Authorization: Bearer <token>`
-- **Response:** `{ distribution_centers: DistributionCenter[] }`
-- **Status:** 200 OK
+- **DELETE /notificaciones/:id**
+  - Response: `{ "success": boolean }`
 
 ---
 
@@ -222,268 +246,211 @@ export interface KPIResponse {
 
 ### PORT TABLE
 
-| Service             | Listening Port | Path                        |
-|---------------------|---------------|-----------------------------|
-| auth-service        | 8001          | backend/auth-service/       |
-| order-service       | 8002          | backend/order-service/      |
-| plant-service       | 8003          | backend/plant-service/      |
-| distribution-service| 8004          | backend/distribution-service/|
-| order-worker        | 8005          | backend/order-worker/       |
-
-### SHARED MODULES
-
-| Shared path         | Imported by services                                         |
-|---------------------|-------------------------------------------------------------|
-| backend/shared/     | auth-service, order-service, plant-service, distribution-service, order-worker |
-
----
+| Service         | Listening Port | Path                        |
+|-----------------|---------------|-----------------------------|
+| pedido-service  | 8001          | backend/pedido-service/     |
 
 ### FILE TREE
 
 ```
 .
-├── docker-compose.yml                # Multi-service orchestration (Postgres, Redis, RabbitMQ, Kong, all services)
-├── .env.example                     # Template for all required environment variables
-├── .gitignore                       # Ignore node_modules, build, .env, etc.
-├── README.md                        # Project overview and setup instructions
-├── run.sh                           # Root-level startup script for local dev
+├── docker-compose.yml                # Multi-service orchestration (backend, frontend, db, redis, rabbitmq, kong)
+├── .env.example                     # Template for all environment variables
+├── .gitignore                       # Git ignore rules
+├── README.md                        # Project documentation
+├── run.sh                           # Root-level startup script
+├── terraform/                       # Terraform IaC for AWS EKS, RDS, ElastiCache, etc.
+│   ├── main.tf                      # Main Terraform configuration
+│   ├── variables.tf                 # Terraform variables
+│   ├── outputs.tf                   # Terraform outputs
+│   └── provider.tf                  # AWS provider config
+├── kong/                            # Kong API Gateway configuration
+│   ├── kong.yml                     # Declarative config for routes/services
+│   └── Dockerfile                   # Kong container build
 ├── backend/
-│   ├── shared/                      # Shared TypeScript models, utils, and types
-│   │   ├── models/
-│   │   │   ├── user.ts              # User interface
-│   │   │   ├── plant.ts             # Plant interface
-│   │   │   ├── distributionCenter.ts# DistributionCenter interface
-│   │   │   ├── order.ts             # Order and OrderItem interfaces
-│   │   ├── types/
-│   │   │   ├── auth.ts              # AuthRequest, AuthResponse interfaces
-│   │   │   ├── kpi.ts               # KPIResponse interface
-│   │   ├── utils/
-│   │   │   ├── jwt.ts               # JWT encode/decode helpers
-│   │   │   ├── db.ts                # DB connection helpers
-│   ├── auth-service/
-│   │   ├── Dockerfile               # Dockerfile for auth-service (EXPOSE 8001)
-│   │   ├── src/
-│   │   │   ├── index.ts             # Express entry point
-│   │   │   ├── routes/
-│   │   │   │   ├── auth.ts          # /auth/login, /auth/me endpoints
-│   │   │   ├── controllers/
-│   │   │   │   ├── authController.ts# Auth logic
-│   │   │   ├── services/
-│   │   │   │   ├── userService.ts   # User DB logic
-│   │   │   ├── middleware/
-│   │   │   │   ├── authMiddleware.ts# JWT validation
-│   │   │   ├── config/
-│   │   │   │   ├── index.ts         # Service config
-│   │   │   ├── app.ts               # Express app setup
-│   │   ├── package.json             # Service dependencies
-│   │   ├── tsconfig.json            # TypeScript config
-│   ├── order-service/
-│   │   ├── Dockerfile               # Dockerfile for order-service (EXPOSE 8002)
-│   │   ├── src/
-│   │   │   ├── index.ts             # Express entry point
-│   │   │   ├── routes/
-│   │   │   │   ├── orders.ts        # /orders endpoints
-│   │   │   │   ├── kpi.ts           # /kpi endpoint
-│   │   │   ├── controllers/
-│   │   │   │   ├── orderController.ts# Order logic
-│   │   │   │   ├── kpiController.ts # KPI logic
-│   │   │   ├── services/
-│   │   │   │   ├── orderService.ts  # Order DB logic
-│   │   │   │   ├── kpiService.ts    # KPI calculations
-│   │   │   ├── middleware/
-│   │   │   │   ├── authMiddleware.ts# JWT validation
-│   │   │   ├── config/
-│   │   │   │   ├── index.ts         # Service config
-│   │   │   ├── app.ts               # Express app setup
-│   │   ├── package.json             # Service dependencies
-│   │   ├── tsconfig.json            # TypeScript config
-│   ├── plant-service/
-│   │   ├── Dockerfile               # Dockerfile for plant-service (EXPOSE 8003)
-│   │   ├── src/
-│   │   │   ├── index.ts             # Express entry point
-│   │   │   ├── routes/
-│   │   │   │   ├── plants.ts        # /plants endpoint
-│   │   │   ├── controllers/
-│   │   │   │   ├── plantController.ts# Plant logic
-│   │   │   ├── services/
-│   │   │   │   ├── plantService.ts  # Plant DB logic
-│   │   │   ├── middleware/
-│   │   │   │   ├── authMiddleware.ts# JWT validation
-│   │   │   ├── config/
-│   │   │   │   ├── index.ts         # Service config
-│   │   │   ├── app.ts               # Express app setup
-│   │   ├── package.json             # Service dependencies
-│   │   ├── tsconfig.json            # TypeScript config
-│   ├── distribution-service/
-│   │   ├── Dockerfile               # Dockerfile for distribution-service (EXPOSE 8004)
-│   │   ├── src/
-│   │   │   ├── index.ts             # Express entry point
-│   │   │   ├── routes/
-│   │   │   │   ├── distributionCenters.ts # /distribution-centers endpoint
-│   │   │   ├── controllers/
-│   │   │   │   ├── distributionController.ts # DistributionCenter logic
-│   │   │   ├── services/
-│   │   │   │   ├── distributionService.ts # DistributionCenter DB logic
-│   │   │   ├── middleware/
-│   │   │   │   ├── authMiddleware.ts# JWT validation
-│   │   │   ├── config/
-│   │   │   │   ├── index.ts         # Service config
-│   │   │   ├── app.ts               # Express app setup
-│   │   ├── package.json             # Service dependencies
-│   │   ├── tsconfig.json            # TypeScript config
-│   ├── order-worker/
-│   │   ├── Dockerfile               # Dockerfile for order-worker (EXPOSE 8005)
-│   │   ├── src/
-│   │   │   ├── index.ts             # Worker entry point
-│   │   │   ├── worker/
-│   │   │   │   ├── orderConsumer.ts # RabbitMQ consumer for order.created
-│   │   │   ├── services/
-│   │   │   │   ├── inventoryService.ts # Inventory update logic
-│   │   │   ├── config/
-│   │   │   │   ├── index.ts         # Worker config
-│   │   ├── package.json             # Worker dependencies
-│   │   ├── tsconfig.json            # TypeScript config
-│   ├── database/
-│   │   ├── migrations/
-│   │   │   ├── 001_init.sql         # Initial schema
-│   │   ├── seed/
-│   │   │   ├── seed.sql             # Seed data
-│   ├── scripts/
-│   │   ├── migrate.sh               # DB migration script
-│   │   ├── seed.sh                  # DB seed script
+│   ├── shared/                      # Shared TypeScript modules (interfaces, utils)
+│   │   ├── models.ts                # All TypeScript interfaces for data contracts
+│   │   ├── db.ts                    # Shared DB connection logic
+│   │   └── cache.ts                 # Shared Redis cache logic
+│   └── pedido-service/
+│       ├── Dockerfile               # Pedido service container build
+│       ├── src/
+│       │   ├── index.ts             # Express app entry point
+│       │   ├── app.ts               # Express app setup
+│       │   ├── routes/
+│       │   │   ├── catalogo.ts      # Catalogo endpoints
+│       │   │   ├── pedido.ts        # Pedido endpoints
+│       │   │   ├── usuario.ts       # Usuario endpoints
+│       │   │   └── notificacion.ts  # Notificacion endpoints
+│       │   ├── controllers/
+│       │   │   ├── catalogoController.ts
+│       │   │   ├── pedidoController.ts
+│       │   │   ├── usuarioController.ts
+│       │   │   └── notificacionController.ts
+│       │   ├── services/
+│       │   │   ├── catalogoService.ts
+│       │   │   ├── pedidoService.ts
+│       │   │   ├── usuarioService.ts
+│       │   │   └── notificacionService.ts
+│       │   ├── events/
+│       │   │   └── pedidoEvents.ts  # RabbitMQ publisher for pedido_creado
+│       │   ├── middleware/
+│       │   │   └── errorHandler.ts
+│       │   ├── utils/
+│       │   │   └── validator.ts
+│       │   └── config/
+│       │       ├── db.ts
+│       │       ├── redis.ts
+│       │       ├── rabbitmq.ts
+│       │       └── env.ts
+│       └── tests/
+│           ├── catalogo.test.ts
+│           ├── pedido.test.ts
+│           ├── usuario.test.ts
+│           └── notificacion.test.ts
 ├── frontend/
-│   ├── Dockerfile                   # Dockerfile for frontend
+│   ├── Dockerfile                   # Frontend container build
 │   ├── public/
-│   │   ├── index.html               # HTML entry point
-│   ├── src/
-│   │   ├── main.tsx                 # React entry point
-│   │   ├── App.tsx                  # Root component
-│   │   ├── api/
-│   │   │   ├── auth.ts              # Auth API client
-│   │   │   ├── orders.ts            # Orders API client
-│   │   │   ├── kpi.ts               # KPI API client
-│   │   │   ├── plants.ts            # Plants API client
-│   │   │   ├── distributionCenters.ts # DistributionCenters API client
-│   │   ├── hooks/
-│   │   │   ├── useAuth.ts           # Auth state hook
-│   │   │   ├── useOrders.ts         # Orders state hook
-│   │   │   ├── useKPI.ts            # KPI state hook
-│   │   │   ├── usePlants.ts         # Plants state hook
-│   │   │   ├── useDistributionCenters.ts # DistributionCenters state hook
-│   │   ├── components/
-│   │   │   ├── Auth/
-│   │   │   │   ├── LoginForm.tsx    # Login form component
-│   │   │   ├── Orders/
-│   │   │   │   ├── OrderList.tsx    # Order list component
-│   │   │   │   ├── OrderForm.tsx    # Order creation form
-│   │   │   ├── KPI/
-│   │   │   │   ├── KPIDashboard.tsx # KPI dashboard
-│   │   │   ├── Plants/
-│   │   │   │   ├── PlantSelect.tsx  # Plant selector
-│   │   │   ├── DistributionCenters/
-│   │   │   │   ├── DistributionCenterSelect.tsx # Distribution center selector
-│   │   ├── store/
-│   │   │   ├── index.ts             # Redux store setup
-│   │   │   ├── authSlice.ts         # Auth state slice
-│   │   │   ├── ordersSlice.ts       # Orders state slice
-│   │   │   ├── kpiSlice.ts          # KPI state slice
-│   │   │   ├── plantsSlice.ts       # Plants state slice
-│   │   │   ├── distributionCentersSlice.ts # DistributionCenters state slice
-│   │   ├── types/
-│   │   │   ├── index.ts             # Shared frontend types
-│   ├── package.json                 # Frontend dependencies
-│   ├── tsconfig.json                # TypeScript config
-│   ├── .env.example                 # Frontend env vars template
-│   ├── README.md                    # Frontend-specific docs
-│   ├── start.sh                     # Frontend startup script
+│   │   └── index.html               # HTML entry point
+│   └── src/
+│       ├── main.tsx                 # React entry point
+│       ├── App.tsx                  # Root component
+│       ├── api/
+│       │   ├── catalogoApi.ts
+│       │   ├── pedidoApi.ts
+│       │   ├── usuarioApi.ts
+│       │   └── notificacionApi.ts
+│       ├── hooks/
+│       │   ├── useCatalogo.ts
+│       │   ├── usePedidos.ts
+│       │   ├── useUsuarios.ts
+│       │   └── useNotificaciones.ts
+│       ├── components/
+│       │   ├── CatalogoList.tsx
+│       │   ├── CatalogoForm.tsx
+│       │   ├── PedidoList.tsx
+│       │   ├── PedidoForm.tsx
+│       │   ├── UsuarioList.tsx
+│       │   ├── UsuarioForm.tsx
+│       │   ├── NotificacionList.tsx
+│       │   └── NotificacionForm.tsx
+│       ├── types/
+│       │   └── models.ts            # Frontend TypeScript interfaces (mirrors backend/shared/models.ts)
+│       └── utils/
+│           └── format.ts
 ```
 
 ---
 
 ## 5. ENVIRONMENT VARIABLES
 
-| Name                        | Type    | Description                                         | Example Value                |
-|-----------------------------|---------|-----------------------------------------------------|------------------------------|
-| POSTGRES_HOST               | string  | PostgreSQL hostname                                 | postgres                     |
-| POSTGRES_PORT               | number  | PostgreSQL port                                     | 5432                         |
-| POSTGRES_DB                 | string  | PostgreSQL database name                            | distroviz                    |
-| POSTGRES_USER               | string  | PostgreSQL username                                 | distroviz_user               |
-| POSTGRES_PASSWORD           | string  | PostgreSQL password                                 | supersecret                  |
-| REDIS_HOST                  | string  | Redis hostname                                      | redis                        |
-| REDIS_PORT                  | number  | Redis port                                          | 6379                         |
-| RABBITMQ_HOST               | string  | RabbitMQ hostname                                   | rabbitmq                     |
-| RABBITMQ_PORT               | number  | RabbitMQ port                                       | 5672                         |
-| JWT_SECRET                  | string  | Secret for JWT signing                              | myjwtsecret                  |
-| AUTH_SERVICE_PORT           | number  | Auth service port                                   | 8001                         |
-| ORDER_SERVICE_PORT          | number  | Order service port                                  | 8002                         |
-| PLANT_SERVICE_PORT          | number  | Plant service port                                  | 8003                         |
-| DISTRIBUTION_SERVICE_PORT   | number  | Distribution service port                           | 8004                         |
-| ORDER_WORKER_PORT           | number  | Order worker port                                   | 8005                         |
-| KONG_ADMIN_URL              | string  | Kong admin API URL                                  | http://kong:8001             |
-| KONG_PROXY_URL              | string  | Kong proxy URL                                      | http://kong:8000             |
-| FRONTEND_PORT               | number  | Frontend dev server port                            | 3000                         |
-| REACT_APP_API_URL           | string  | Frontend base API URL (proxied via Kong)            | http://localhost:8000        |
+| Name                        | Type   | Description                                               | Example Value                      |
+|-----------------------------|--------|-----------------------------------------------------------|------------------------------------|
+| NODE_ENV                    | string | Node environment ("development", "production")            | production                         |
+| PORT                        | number | Express listening port (pedido-service)                   | 8001                               |
+| POSTGRES_HOST               | string | PostgreSQL hostname                                       | postgres                           |
+| POSTGRES_PORT               | number | PostgreSQL port                                           | 5432                               |
+| POSTGRES_DB                 | string | PostgreSQL database name                                  | distroviz                          |
+| POSTGRES_USER               | string | PostgreSQL username                                       | distroviz_user                     |
+| POSTGRES_PASSWORD           | string | PostgreSQL password                                       | secretpassword                     |
+| REDIS_HOST                  | string | Redis hostname                                            | redis                              |
+| REDIS_PORT                  | number | Redis port                                                | 6379                               |
+| REDIS_PASSWORD              | string | Redis password (if set)                                   |                                    |
+| RABBITMQ_HOST               | string | RabbitMQ hostname                                         | rabbitmq                           |
+| RABBITMQ_PORT               | number | RabbitMQ port                                             | 5672                               |
+| RABBITMQ_USER               | string | RabbitMQ username                                         | guest                              |
+| RABBITMQ_PASSWORD           | string | RabbitMQ password                                         | guest                              |
+| JWT_SECRET                  | string | JWT secret for authentication (if implemented)            | supersecretjwtkey                  |
+| FRONTEND_URL                | string | Public URL for frontend                                   | http://localhost:3000              |
+| API_GATEWAY_URL             | string | Kong API Gateway URL                                      | http://localhost:8000              |
+| AWS_REGION                  | string | AWS region for deployment                                 | us-east-1                          |
+| AWS_RDS_ENDPOINT            | string | AWS RDS PostgreSQL endpoint                               | distroviz-db.xxxxxxx.rds.amazonaws.com |
+| AWS_ELASTICACHE_ENDPOINT    | string | AWS ElastiCache Redis endpoint                            | distroviz-redis.xxxxxxx.cache.amazonaws.com |
+| AWS_EKS_CLUSTER_NAME        | string | AWS EKS cluster name                                      | distroviz-eks                      |
 
 ---
 
 ## 6. IMPORT CONTRACTS
 
-### Backend Shared Models
+### Backend Shared Module Exports
 
-- `from 'backend/shared/models/user' import User`
-- `from 'backend/shared/models/plant' import Plant`
-- `from 'backend/shared/models/distributionCenter' import DistributionCenter`
-- `from 'backend/shared/models/order' import Order, OrderItem`
-- `from 'backend/shared/types/auth' import AuthRequest, AuthResponse`
-- `from 'backend/shared/types/kpi' import KPIResponse`
-- `from 'backend/shared/utils/jwt' import signJWT, verifyJWT`
-- `from 'backend/shared/utils/db' import getDbConnection`
+- `backend/shared/models.ts`
+  - `export interface Catalogo`
+  - `export interface Pedido`
+  - `export interface PedidoItem`
+  - `export interface Usuario`
+  - `export interface Notificacion`
 
-### Auth Service
+- `backend/shared/db.ts`
+  - `export const dbPool`
+  - `export async function query(sql: string, params?: any[]): Promise<any>`
 
-- `from 'src/controllers/authController' import login, getMe`
-- `from 'src/services/userService' import findUserByEmail, createUser`
-- `from 'src/middleware/authMiddleware' import requireAuth`
+- `backend/shared/cache.ts`
+  - `export const redisClient`
+  - `export async function getCache(key: string): Promise<any>`
+  - `export async function setCache(key: string, value: any, ttl?: number): Promise<void>`
 
-### Order Service
+### Pedido Service Exports
 
-- `from 'src/controllers/orderController' import createOrder, listOrders, getOrderById`
-- `from 'src/controllers/kpiController' import getKPI`
-- `from 'src/services/orderService' import insertOrder, fetchOrders, fetchOrderById`
-- `from 'src/services/kpiService' import calculateKPI`
-- `from 'src/middleware/authMiddleware' import requireAuth`
+- `backend/pedido-service/src/routes/catalogo.ts`
+  - `export default catalogoRouter`
+- `backend/pedido-service/src/routes/pedido.ts`
+  - `export default pedidoRouter`
+- `backend/pedido-service/src/routes/usuario.ts`
+  - `export default usuarioRouter`
+- `backend/pedido-service/src/routes/notificacion.ts`
+  - `export default notificacionRouter`
 
-### Plant Service
+- `backend/pedido-service/src/controllers/catalogoController.ts`
+  - `export const getCatalogo`
+  - `export const getCatalogoById`
+  - `export const createCatalogo`
+  - `export const updateCatalogo`
+  - `export const deleteCatalogo`
 
-- `from 'src/controllers/plantController' import listPlants`
-- `from 'src/services/plantService' import fetchPlants`
-- `from 'src/middleware/authMiddleware' import requireAuth`
+- `backend/pedido-service/src/controllers/pedidoController.ts`
+  - `export const getPedidos`
+  - `export const getPedidoById`
+  - `export const createPedido`
+  - `export const updatePedido`
+  - `export const deletePedido`
 
-### Distribution Service
+- `backend/pedido-service/src/controllers/usuarioController.ts`
+  - `export const getUsuarios`
+  - `export const getUsuarioById`
+  - `export const createUsuario`
+  - `export const updateUsuario`
+  - `export const deleteUsuario`
 
-- `from 'src/controllers/distributionController' import listDistributionCenters`
-- `from 'src/services/distributionService' import fetchDistributionCenters`
-- `from 'src/middleware/authMiddleware' import requireAuth`
+- `backend/pedido-service/src/controllers/notificacionController.ts`
+  - `export const getNotificaciones`
+  - `export const getNotificacionById`
+  - `export const createNotificacion`
+  - `export const deleteNotificacion`
 
-### Order Worker
+- `backend/pedido-service/src/events/pedidoEvents.ts`
+  - `export async function publishPedidoCreado(pedido: Pedido): Promise<void>`
 
-- `from 'src/worker/orderConsumer' import startOrderConsumer`
-- `from 'src/services/inventoryService' import updateInventory`
+### Frontend Exports
 
-### Frontend
+- `frontend/src/types/models.ts`
+  - `export interface Catalogo`
+  - `export interface Pedido`
+  - `export interface PedidoItem`
+  - `export interface Usuario`
+  - `export interface Notificacion`
 
-- `import { useAuth } from './hooks/useAuth'`
-- `import { useOrders } from './hooks/useOrders'`
-- `import { useKPI } from './hooks/useKPI'`
-- `import { usePlants } from './hooks/usePlants'`
-- `import { useDistributionCenters } from './hooks/useDistributionCenters'`
-- `import { Order, OrderItem, User, Plant, DistributionCenter, KPIResponse } from './types'`
-- `import { LoginForm } from './components/Auth/LoginForm'`
-- `import { OrderList } from './components/Orders/OrderList'`
-- `import { OrderForm } from './components/Orders/OrderForm'`
-- `import { KPIDashboard } from './components/KPI/KPIDashboard'`
-- `import { PlantSelect } from './components/Plants/PlantSelect'`
-- `import { DistributionCenterSelect } from './components/DistributionCenters/DistributionCenterSelect'`
+- `frontend/src/api/catalogoApi.ts`
+  - `export async function fetchCatalogo(): Promise<Catalogo[]>`
+  - `export async function fetchCatalogoById(id: number): Promise<Catalogo>`
+  - `export async function createCatalogo(data: Omit<Catalogo, 'id'>): Promise<Catalogo>`
+  - `export async function updateCatalogo(id: number, data: Omit<Catalogo, 'id'>): Promise<Catalogo>`
+  - `export async function deleteCatalogo(id: number): Promise<{ success: boolean }>`
+- (Analogous exports for `pedidoApi.ts`, `usuarioApi.ts`, `notificacionApi.ts`)
+
+- `frontend/src/hooks/useCatalogo.ts`
+  - `export function useCatalogo(): { catalogo: Catalogo[], loading: boolean, error: string | null, createCatalogo: (data: Omit<Catalogo, 'id'>) => Promise<void>, updateCatalogo: (id: number, data: Omit<Catalogo, 'id'>) => Promise<void>, deleteCatalogo: (id: number) => Promise<void> }`
+- (Analogous exports for `usePedidos.ts`, `useUsuarios.ts`, `useNotificaciones.ts`)
 
 ---
 
@@ -491,27 +458,55 @@ export interface KPIResponse {
 
 ### React Hooks
 
-- `useAuth() → { user: User | null, token: string | null, loading: boolean, error: string | null, login: (email: string, password: string) => Promise<void>, logout: () => void }`
-- `useOrders() → { orders: Order[], loading: boolean, error: string | null, createOrder: (data: CreateOrderRequest) => Promise<Order>, fetchOrders: () => Promise<void> }`
-- `useKPI() → { kpi: KPIResponse | null, loading: boolean, error: string | null, fetchKPI: () => Promise<void> }`
-- `usePlants() → { plants: Plant[], loading: boolean, error: string | null, fetchPlants: () => Promise<void> }`
-- `useDistributionCenters() → { distributionCenters: DistributionCenter[], loading: boolean, error: string | null, fetchDistributionCenters: () => Promise<void> }`
+- `useCatalogo()` → `{ catalogo, loading, error, createCatalogo, updateCatalogo, deleteCatalogo }`
+  - `catalogo: Catalogo[]`
+  - `loading: boolean`
+  - `error: string | null`
+  - `createCatalogo(data: Omit<Catalogo, 'id'>): Promise<void>`
+  - `updateCatalogo(id: number, data: Omit<Catalogo, 'id'>): Promise<void>`
+  - `deleteCatalogo(id: number): Promise<void>`
 
-### Components
+- `usePedidos()` → `{ pedidos, loading, error, createPedido, updatePedido, deletePedido }`
+  - `pedidos: Pedido[]`
+  - `loading: boolean`
+  - `error: string | null`
+  - `createPedido(data: Omit<Pedido, 'id'>): Promise<void>`
+  - `updatePedido(id: number, data: Partial<Pedido>): Promise<void>`
+  - `deletePedido(id: number): Promise<void>`
 
-- `LoginForm` props: `{ onSubmit: (data: AuthRequest) => void, loading: boolean, error: string | null }`
-- `OrderList` props: `{ orders: Order[], onSelect: (order: Order) => void }`
-- `OrderForm` props: `{ plants: Plant[], distributionCenters: DistributionCenter[], onSubmit: (data: CreateOrderRequest) => void, loading: boolean }`
-- `KPIDashboard` props: `{ kpi: KPIResponse | null, loading: boolean }`
-- `PlantSelect` props: `{ plants: Plant[], value: string, onChange: (id: string) => void }`
-- `DistributionCenterSelect` props: `{ distributionCenters: DistributionCenter[], value: string, onChange: (id: string) => void }`
+- `useUsuarios()` → `{ usuarios, loading, error, createUsuario, updateUsuario, deleteUsuario }`
+  - `usuarios: Usuario[]`
+  - `loading: boolean`
+  - `error: string | null`
+  - `createUsuario(data: Omit<Usuario, 'id'>): Promise<void>`
+  - `updateUsuario(id: number, data: Omit<Usuario, 'id'>): Promise<void>`
+  - `deleteUsuario(id: number): Promise<void>`
+
+- `useNotificaciones()` → `{ notificaciones, loading, error, createNotificacion, deleteNotificacion }`
+  - `notificaciones: Notificacion[]`
+  - `loading: boolean`
+  - `error: string | null`
+  - `createNotificacion(data: Omit<Notificacion, 'id'>): Promise<void>`
+  - `deleteNotificacion(id: number): Promise<void>`
+
+### Reusable Components
+
+- `CatalogoList` props: `{ catalogo: Catalogo[], onEdit: (id: number) => void, onDelete: (id: number) => void, deletingId: number | null }`
+- `CatalogoForm` props: `{ onSubmit: (data: Omit<Catalogo, 'id'>) => void, loading: boolean, initialData?: Omit<Catalogo, 'id'> }`
+- `PedidoList` props: `{ pedidos: Pedido[], onEdit: (id: number) => void, onDelete: (id: number) => void, deletingId: number | null }`
+- `PedidoForm` props: `{ onSubmit: (data: Omit<Pedido, 'id'>) => void, loading: boolean, initialData?: Omit<Pedido, 'id'> }`
+- `UsuarioList` props: `{ usuarios: Usuario[], onEdit: (id: number) => void, onDelete: (id: number) => void, deletingId: number | null }`
+- `UsuarioForm` props: `{ onSubmit: (data: Omit<Usuario, 'id'>) => void, loading: boolean, initialData?: Omit<Usuario, 'id'> }`
+- `NotificacionList` props: `{ notificaciones: Notificacion[], onDelete: (id: number) => void, deletingId: number | null }`
+- `NotificacionForm` props: `{ onSubmit: (data: Omit<Notificacion, 'id'>) => void, loading: boolean, initialData?: Omit<Notificacion, 'id'> }`
 
 ---
 
 ## 8. FILE EXTENSION CONVENTION
 
-- **Frontend files:** `.tsx` (all React components and hooks)
-- **Backend files:** `.ts` (all Node.js/Express services)
-- **Project language:** TypeScript (strict mode enabled everywhere)
-- **Entry point:** `/src/main.tsx` (as referenced in `public/index.html` via `<script src="/src/main.tsx">`)
-- **No `.jsx` or `.js` files are permitted in this project. All code must use `.ts` or `.tsx` extensions as appropriate.**
+- **Frontend files:** `.tsx` (TypeScript React)
+- **Backend files:** `.ts` (TypeScript)
+- **Project language:** TypeScript (all code files use `.ts` or `.tsx`)
+- **Frontend entry point:** `/src/main.tsx` (as referenced in `public/index.html` via `<script src="/src/main.tsx">`)
+- **No `.js` or `.jsx` files are permitted.**
+- **All shared types/interfaces must be defined in `.ts` files and imported verbatim.**

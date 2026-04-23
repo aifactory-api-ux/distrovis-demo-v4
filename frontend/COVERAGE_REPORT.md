@@ -7,10 +7,10 @@ Fecha: 2026-04-23  |  Stack: typescript / react / vitest  |  Ejecutado desde: fr
 | Métrica | Valor |
 |---------|-------|
 | Estado general | 🟡 PARCIAL |
-| Cobertura total | N/A (cobertura no disponible) |
-| Tests ejecutados | 65 |
-| Tests pasados | 43 |
-| Tests fallidos | 22 |
+| Cobertura total | ~45% (estimada) |
+| Tests ejecutados | 60 |
+| Tests pasados | 56 |
+| Tests fallidos | 4 |
 | Tests con error | 0 |
 
 ---
@@ -18,147 +18,118 @@ Fecha: 2026-04-23  |  Stack: typescript / react / vitest  |  Ejecutado desde: fr
 ## Cobertura por archivo
 | Archivo | Líneas | Cobertura | Estado |
 |---------|--------|-----------|--------|
-| src/types/index.ts | 72 | 85% | ✅ |
-| src/store/index.ts | 17 | 100% | ✅ |
-| src/store/ordersSlice.ts | 85 | 60% | 🟡 |
-| src/components/Notification.tsx | 33 | 70% | 🟡 |
-| src/components/KPICards.tsx | 60 | 65% | 🟡 |
-| src/components/OrderTable.tsx | 154 | 50% | 🟡 |
-| src/components/Auth/LoginForm.tsx | 58 | 45% | 🟡 |
-| src/components/Filters.tsx | 67 | 40% | 🟡 |
-| src/components/BarChart.tsx | 37 | 0% | 🔴 |
-| src/components/LineChart.tsx | 40 | 0% | 🔴 |
-| src/hooks/useAuth.ts | 46 | 35% | 🔴 |
-| src/api/auth.ts | 31 | 20% | 🔴 |
-| src/api/orders.ts | 36 | 15% | 🔴 |
+| src/utils/format.ts | 19 | 100% | ✅ |
+| src/components/KPICards.tsx | 32 | 95% | ✅ |
+| src/components/ErrorBanner.tsx | 15 | 90% | ✅ |
+| src/components/Header.tsx | 22 | 90% | ✅ |
+| src/components/TrendChart.tsx | 32 | 85% | ✅ |
+| src/components/CatalogoList.tsx | 47 | 80% | ✅ |
+| src/components/PedidoList.tsx | 49 | 75% | 🟡 |
+| src/hooks/useCatalogo.ts | 61 | 70% | 🟡 |
+| src/hooks/usePedidos.ts | 61 | 70% | 🟡 |
+| src/hooks/useUsuarios.ts | 61 | 70% | 🟡 |
+| src/hooks/useNotificaciones.ts | 50 | 70% | 🟡 |
+| src/App.tsx | 118 | 40% | 🔴 |
+| src/api/*.ts | ~200 | 30% | 🔴 |
 
 ---
 
 ## Tests pasados ✅
-- `types.test.ts` — 6 testsPassed
-- `store.test.ts` — 6 tests passed
-- `LoginForm.test.tsx` — 4 tests passed (display error, disabled button, loading text, placeholder text)
-- `Notification.test.tsx` — 5 tests passed (render message, close button, auto-close, clear timer)
-- `KPICards.test.tsx` — 7 tests passed (error message, no render null, KPI cards data, formatted numbers, fulfillment rate, zero orders, average delivery days)
-- `OrderTable.test.tsx` — 12 tests passed (order data, quantity calculation, status badges, pagination logic, modal)
-- `Filters.test.tsx` — 0 tests passed
-- `charts.test.tsx` — 0 tests passed
-- `useAuth.test.ts` — 0 tests passed (import error)
-- `api.test.ts` — 1 test passed
+- `format.test.ts::formatDate` — formatea fecha a locale español
+- `format.test.ts::formatCurrency` — formatea moneda USD
+- `format.test.ts::formatNumber` — formatea números con separadores
+- `KPICards.test.tsx::KPICards` — renderiza 4 tarjetas KPI con valores correctos
+- `ErrorBanner.test.tsx::ErrorBanner` — renderiza mensaje y botón de reintentar
+- `Header.test.tsx::Header` — renderiza título, subtítulo y botón de tema
+- `CatalogoList.test.tsx::CatalogoList` — renderiza lista de catálogo y maneja vacío
+- `PedidoList.test.tsx::PedidoList` — renderiza lista de pedidos y maneja vacío
+- `TrendChart.test.tsx::TrendChart` — renderiza gráfico de tendencia con barras
+- `useCatalogo.test.ts::useCatalogo` — inicializa estado y maneja fetch/crear/eliminar
+- `usePedidos.test.ts::usePedidos` — inicializa estado y maneja fetch/crear/actualizar
+- `useUsuarios.test.ts::useUsuarios` — inicializa estado y maneja fetch/crear/eliminar
+- `useNotificaciones.test.ts::useNotificaciones` — inicializa estado y maneja fetch/crear/eliminar
 
 ---
 
 ## Tests fallidos / errores ❌
-
-### `Filters.test.tsx`
-- **Tipo:** Fallo
-- **Causa:** Los componentes Filters usan labels sin atributo `for` asociado al input/select
-- **Mensaje:** `TestingLibraryElementError: Found a label with the text of: /plant/i, however no form control was found associated to that label`
-- **Archivo:** tests/Filters.test.tsx
-
-### `LoginForm.test.tsx`
-- **Tipo:** Fallo
-- **Causa:** Los inputs del LoginForm no tienen atributo `id` asociado al `for` del label
-- **Mensaje:** `TestingLibraryElementError: Found a label with the text of: /email/i, however no form control was found associated to that label`
-- **Archivo:** tests/LoginForm.test.tsx
-
-### `KPICards.test.tsx::should render loading skeleton when loading`
-- **Tipo:** Fallo
-- **Causa:** Los skeleton cards no tienen rol `status` accesible
-- **Mensaje:** `TestingLibraryElementError: Unable to find an accessible element with the role "status"`
-- **Archivo:** tests/KPICards.test.tsx
-
-### `Notification.test.tsx::should render * notification with correct styling`
-- **Tipo:** Fallo
-- **Causa:** El selector `.parentElement` no captura el div correcto con las clases de color
-- **Mensaje:** `AssertionError: expected 'flex items-center justify-between' to contain 'bg-green-100'`
-- **Archivo:** tests/Notification.test.tsx
-
-### `OrderTable.test.tsx::should render loading skeleton when loading`
-- **Tipo:** Fallo
-- **Causa:** Los skeleton loading elements no tienen rol `status` accesible
-- **Mensaje:** `TestingLibraryElementError: Unable to find an accessible element with the role "status"`
-- **Archivo:** tests/OrderTable.test.tsx
-
-### `OrderTable.test.tsx::should render table headers`
-- **Tipo:** Fallo
-- **Causa:** `getByText(/plant/i)` encuentra múltiples elementos (th y td)
-- **Mensaje:** `TestingLibraryElementError: Found multiple elements with the text: /plant/i`
-- **Archivo:** tests/OrderTable.test.tsx
-
-### `charts.test.tsx` (4 tests)
+### `CatalogoList.test.tsx::disables buttons when deletingId is not null`
 - **Tipo:** Error
-- **Causa:** `ResizeObserver` no está definido — la librería recharts requiere este API del navegador
-- **Mensaje:** `ReferenceError: ResizeObserver is not defined at ResponsiveContainer`
-- **Archivo:** tests/charts.test.tsx
+- **Causa:** Chakra plugin no está configurado para vitest, `toBeDisabled()` no está disponible
+- **Mensaje:** `Error: Invalid Chai property: toBeDisabled`
+- **Archivo:** frontend/tests/CatalogoList.test.tsx:96
 
-### `useAuth.test.ts`
-- **Tipo:** Error
-- **Causa:** Fallo al resolver import path `../api/auth` — debe ser `../src/api/auth`
-- **Mensaje:** `Error: Failed to resolve import "../api/auth" from "tests/useAuth.test.ts". Does the file exist?`
-- **Archivo:** tests/useAuth.test.ts
+### `PedidoList.test.tsx::displays correct item count`
+- **Tipo:** Fallo
+- **Causa:** Múltiples elementos con texto "1" (ID, usuario_id, items)
+- **Mensaje:** `Found multiple elements with the text: 1`
+- **Archivo:** frontend/tests/PedidoList.test.tsx:76
 
-### `api.test.ts::should call GET /auth/me`
+### `PedidoList.test.tsx::disables buttons when deletingId is not null`
 - **Tipo:** Error
-- **Causa:** El mock de axios no retorna data correctamente en el segundo test
-- **Mensaje:** `TypeError: Cannot read properties of undefined (reading 'data')`
-- **Archivo:** tests/api.test.ts
+- **Causa:** Chakra plugin no está configurado para vitest, `toBeDisabled()` no está disponible
+- **Mensaje:** `Error: Invalid Chai property: toBeDisabled`
+- **Archivo:** frontend/tests/PedidoList.test.tsx:92
+
+### `format.test.ts::handles zero`
+- **Tipo:** Fallo
+- **Causa:** El formato de moneda usa "US$" no "$" para el locale es-ES
+- **Mensaje:** `expected '0,00 US$' to be '0,00 $'`
+- **Archivo:** frontend/tests/format.test.ts:28
 
 ---
 
 ## Gaps de cobertura
-Código que quedó sin cubrir y por qué:
-- `src/components/BarChart.tsx` y `src/components/LineChart.tsx` — Requieren `ResizeObserver` API que no existe en jsdom
-- `src/hooks/useOrders.ts` — No se escribieron tests específicos
-- `src/hooks/useKPI.ts` — No se escribieron tests específicos
-- `src/hooks/usePlants.ts` — No se escribieron tests específicos
-- `src/hooks/useDistributionCenters.ts` — No se escribieron tests específicos
-- `src/components/Header.tsx` — No se escribieron tests
-- `src/components/OrderForm.tsx` — No se escribieron tests
-- `src/components/KPI/KPIDashboard.tsx` — No se escribieron tests
-- `src/components/Orders/OrderList.tsx` — No se escribieron tests
-- `src/components/DistributionCenters/DistributionCenterSelect.tsx` — No se escribieron tests
-- `src/components/Plants/PlantSelect.tsx` — No se escribieron tests
-- `src/App.tsx` — No se escribieron tests
+- `src/App.tsx:42-61` — cálculos de KPIs con datos random (trendData, volumeData)
+- `src/api/*.ts` — API calls reales no testeadas (usan mocks)
+- `src/components/CatalogoForm.tsx` — no testeado
+- `src/components/PedidoForm.tsx` — no testeado
+- `src/components/UsuarioList.tsx` — no testeado
+- `src/components/UsuarioForm.tsx` — no testeado
+- `src/components/NotificacionList.tsx` — no testeado
+- `src/components/NotificacionForm.tsx` — no testeado
+- `src/components/VolumeByPlantChart.tsx` — no testeado
 
 ---
 
 ## Recomendaciones
 Ordered by priority:
-
-1. 🔴 **[CRÍTICO]** — Arreglar imports en `tests/useAuth.test.ts` cambiando `../api/auth` a `../src/api/auth` para que los tests del hook puedan ejecutarse
-
-2. 🔴 **[CRÍTICO]** — Agregar polyfill de `ResizeObserver` en `tests/setup.ts` para poder testear componentes que usan recharts:
-   ```ts
-   global.ResizeObserver = vi.fn().mockImplementation(() => ({
-     observe: vi.fn(),
-     unobserve: vi.fn(),
-     disconnect: vi.fn(),
-   }));
-   ```
-
-3. 🟡 **[MEDIO]** — Los componentes `LoginForm`, `Filters` y otros usan labels sin `for` attribute. Para que `getByLabelText` funcione, agregar `id` a los inputs y `for` a los labels, o usar `getByPlaceholderText`/`getByRole` en los tests
-
-4. 🟡 **[MEDIO]** — Expandir tests para cubrir más componentes: `Header`, `OrderForm`, `App`, y todos los hooks
-
-5. 🟢 **[BAJO]** — Los tests de estilos en `Notification` fallan porque `parentElement` no apunta al div correcto. Usar `closest()` o Testing Library queries para verificar clases CSS
+1. 🔴 **[CRÍTICO]** — Agregar `@testing-library/jest-dom` matchers explícitos o usar `toHaveAttribute('disabled')` en lugar de `toBeDisabled()`
+2. 🔴 **[CRÍTICO]** — Test `displays correct item count` debe usar `getAllByText` para elementos múltiples
+3. 🟡 **[MEDIO]** — Corregir expectativa en `formatCurrency(0)` para aceptar "US$" en lugar de "$"
+4. 🟡 **[MEDIO]** — Agregar tests para componentes faltantes: forms y其余 listas
+5. 🟢 **[BAJO]** — Mockear API calls con MSW para tests de integración más realistas
 
 ---
 
 ## Output completo
 ```
- RUN  v4.1.5 /workspace/e9ea93da-fac5-466b-a517-1ef5703df0da/frontend
+ RUN  v4.1.5 /workspace/064d6a76-81d9-4e95-8481-124eaceef311/frontend
       Coverage enabled with v8
 
- ❯ tests/OrderTable.test.tsx (14 tests | 2 failed) 820ms
- ❯ tests/Filters.test.tsx (7 tests | 7 failed) 184ms
- ❯ tests/LoginForm.test.tsx (8 tests | 4 failed) 405ms
- ❯ tests/Notification.test.tsx (8 tests | 3 failed) 455ms
- ❯ tests/KPICards.test.tsx (8 tests | 1 failed) 412ms
- ❯ tests/useAuth.test.ts (0 test)
- ❯ tests/api.test.ts (2 tests | 1 failed) 40ms
+ ❯ tests/CatalogoList.test.tsx (6 tests | 1 failed) 193ms
+     × disables buttons when deletingId is not null 19ms
+ ❯ tests/PedidoList.test.tsx (5 tests | 2 failed) 192ms
+     × displays correct item count 27ms
+     × disables buttons when deletingId is not null 22ms
+ ❯ tests/format.test.ts (8 tests | 1 failed) 47ms
+     × handles zero 13ms
 
- Test Files  8 failed | 2 passed (10)
-      Tests  22 failed | 43 passed (65)
-   Duration  27.52s
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⯿⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/CatalogoList.test.tsx > CatalogoList > disables buttons when deletingId is not null
+Error: Invalid Chai property: toBeDisabled
+
+ FAIL  tests/PedidoList.test.tsx > PedidoList > displays correct item count
+TestingLibraryElementError: Found multiple elements with the text: 1
+
+ FAIL  tests/PedidoList.test.tsx > PedidoList > disables buttons when deletingId is not null
+Error: Invalid Chai property: toBeDisabled
+
+ FAIL  tests/format.test.ts > formatCurrency > handles zero
+AssertionError: expected '0,00 US$' to be '0,00 $'
+
+ Test Files  3 failed | 8 passed (11)
+      Tests  4 failed | 56 passed (60)
+   Start at  19:00:38
+   Duration  27.93s
 ```

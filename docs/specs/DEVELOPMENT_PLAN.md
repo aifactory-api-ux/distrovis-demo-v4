@@ -2,151 +2,41 @@
 
 ## 1. ARCHITECTURE OVERVIEW
 
-**System Components:**
-- **Frontend (React 18 + TypeScript):** Responsive dashboard for KPIs, order management, charts, and creation form.
-- **Backend Microservices (Node.js 20 + Express.js + TypeScript):**
-  - **auth-service:** (Port 8001) — User authentication (login, me)
-  - **order-service:** (Port 8002) — Orders CRUD, KPIs, order listing
-  - **plant-service:** (Port 8003) — Plant catalog
-  - **distribution-service:** (Port 8004) — Distribution center catalog
-  - **order-worker:** (Port 8005) — RabbitMQ consumer for order events, inventory updates
-- **Shared Modules:** TypeScript interfaces, types, and utilities for cross-service consistency
-- **Database:** PostgreSQL 15 (primary), initialized via SQL migration scripts
-- **Cache:** Redis 7 (sessions, caching)
-- **Message Broker:** RabbitMQ 3.12 (order events)
-- **API Gateway:** Kong 3.4 (routing, CORS, security)
-- **Containerization:** Docker, Docker Compose, Kubernetes manifests
-- **Infrastructure:** Healthchecks, environment validation, structured logging, secure config
+**Components:**
+- **Frontend (React 18 + TypeScript 5):** SPA dashboard for KPIs, trends, order table, and order creation form. Responsive, dark/light theme, error handling, and filtering.
+- **Backend (Node.js 20 + Express.js 4.18):** Single service (`pedido-service`) exposing REST endpoints for Catalogo, Pedido, Usuario, Notificacion. Uses PostgreSQL 15 (orders, catalog, users, notifications), Redis 7 (cache), RabbitMQ 3.12 (event: pedido_creado).
+- **API Gateway (Kong 3.4):** Routes frontend and API requests to backend service.
+- **Infrastructure:** Docker Compose for local orchestration, Kubernetes manifests (Terraform for AWS EKS, RDS, ElastiCache), GitHub Actions for CI/CD.
 
-**Folder Structure:**
-```
-project-root/
-├── frontend/
-│   ├── src/
-│   └── Dockerfile
-├── backend/
-│   ├── shared/
-│   │   ├── models/
-│   │   │   ├── user.ts
-│   │   │   ├── plant.ts
-│   │   │   ├── distributionCenter.ts
-│   │   │   ├── order.ts
-│   │   ├── types/
-│   │   │   ├── auth.ts
-│   │   │   ├── kpi.ts
-│   │   ├── utils/
-│   │   │   ├── jwt.ts
-│   │   │   ├── db.ts
-│   ├── auth-service/
-│   │   ├── Dockerfile
-│   │   ├── src/
-│   │   │   ├── index.ts
-│   │   │   ├── app.ts
-│   │   │   ├── routes/
-│   │   │   │   ├── auth.ts
-│   │   │   ├── controllers/
-│   │   │   │   ├── authController.ts
-│   │   │   ├── services/
-│   │   │   │   ├── userService.ts
-│   │   │   ├── middleware/
-│   │   │   │   ├── authMiddleware.ts
-│   │   │   ├── config/
-│   │   │   │   ├── index.ts
-│   ├── order-service/
-│   │   ├── Dockerfile
-│   │   ├── src/
-│   │   │   ├── index.ts
-│   │   │   ├── app.ts
-│   │   │   ├── routes/
-│   │   │   │   ├── orders.ts
-│   │   │   │   ├── kpi.ts
-│   │   │   ├── controllers/
-│   │   │   │   ├── orderController.ts
-│   │   │   │   ├── kpiController.ts
-│   │   │   ├── services/
-│   │   │   │   ├── orderService.ts
-│   │   │   │   ├── kpiService.ts
-│   │   │   ├── middleware/
-│   │   │   │   ├── authMiddleware.ts
-│   │   │   ├── config/
-│   │   │   │   ├── index.ts
-│   ├── plant-service/
-│   │   ├── Dockerfile
-│   │   ├── src/
-│   │   │   ├── index.ts
-│   │   │   ├── app.ts
-│   │   │   ├── routes/
-│   │   │   │   ├── plants.ts
-│   │   │   ├── controllers/
-│   │   │   │   ├── plantController.ts
-│   │   │   ├── services/
-│   │   │   │   ├── plantService.ts
-│   │   │   ├── middleware/
-│   │   │   │   ├── authMiddleware.ts
-│   │   │   ├── config/
-│   │   │   │   ├── index.ts
-│   ├── distribution-service/
-│   │   ├── Dockerfile
-│   │   ├── src/
-│   │   │   ├── index.ts
-│   │   │   ├── app.ts
-│   │   │   ├── routes/
-│   │   │   │   ├── distributionCenters.ts
-│   │   │   ├── controllers/
-│   │   │   │   ├── distributionController.ts
-│   │   │   ├── services/
-│   │   │   │   ├── distributionService.ts
-│   │   │   ├── middleware/
-│   │   │   │   ├── authMiddleware.ts
-│   │   │   ├── config/
-│   │   │   │   ├── index.ts
-│   ├── order-worker/
-│   │   ├── Dockerfile
-│   │   ├── src/
-│   │   │   ├── index.ts
-│   │   │   ├── worker/
-│   │   │   │   ├── orderConsumer.ts
-│   │   │   ├── services/
-│   │   │   │   ├── inventoryService.ts
-│   │   │   ├── config/
-│   │   │   │   ├── index.ts
-│   ├── database/
-│   │   ├── migrations/
-│   │   │   ├── 001_init.sql
-│   │   ├── seed/
-│   │   │   ├── seed.sql
-│   ├── scripts/
-│   │   ├── migrate.sh
-│   │   ├── seed.sh
-├── docs/
-│   ├── architecture.md
-├── docker-compose.yml
-├── .env.example
-├── .gitignore
-├── .dockerignore
-├── run.sh
-├── README.md
-```
+**Models:**
+- **Catalogo, Pedido, PedidoItem, Usuario, Notificacion** (see SPEC.md §2 for exact fields).
+- **DB Schema:** Tables for catalogo, pedido, pedido_item, usuario, notificacion (see SPEC.md §2).
 
-**API Endpoints:**  
-(See SPEC.md §3 for full details; all endpoints, request/response types, and headers are strictly enforced.)
+**APIs:** (see SPEC.md §3)
+- `/catalogo` (CRUD), `/pedidos` (CRUD), `/usuarios` (CRUD), `/notificaciones` (CRUD)
+
+**Folder Structure:** (see SPEC.md §4)
+- `frontend/` (SPA)
+- `backend/pedido-service/` (Express service)
+- `backend/shared/` (models, db, cache)
+- `kong/` (gateway config)
+- `terraform/` (infra as code)
+- Root: `docker-compose.yml`, `.env.example`, `run.sh`, `README.md`, `.gitignore`
 
 ## 2. ACCEPTANCE CRITERIA
 
-1. **Dashboard displays real-time KPIs, charts, and paginated order table, all filterable by plant and order status, with loading indicators and error handling.**
-2. **Order creation form validates input, submits to API, shows success/error notifications, and resets on success.**
-3. **All backend services expose health endpoints, validate environment variables, use structured logging, and enforce input validation and error handling.**
-4. **System runs end-to-end with `./run.sh`, all services healthy, frontend accessible, and all API endpoints functional.**
-5. **Tests cover at least one happy-path and one error-case per endpoint/component.**
+1. The dashboard displays 4 KPI cards, trend and volume charts, a paginated/filterable order table, and a creation form, all updating dynamically and responsively.
+2. The backend exposes all endpoints as per SPEC.md, with correct data contracts, validation, error handling, and health checks; events are published to RabbitMQ on order creation.
+3. The system runs locally with `./run.sh`, all services healthy, frontend accessible at `http://localhost:<frontend-port>`, and all API endpoints functional via Kong gateway.
 
 ---
 
 ## TEAM SCOPE (MANDATORY — PARSED BY THE PIPELINE)
 
-- **role-tl (technical_lead):** Foundation, shared types, config, DB schema
-- **role-be (backend_developer):** Auth, Order, Plant, Distribution, Worker services
-- **role-fe (frontend_developer):** React dashboard, forms, charts, state, API integration
-- **role-devops (devops_support):** Infrastructure, orchestration, CI/CD, documentation
+- **Role:** role-tl (technical_lead)
+- **Role:** role-be (backend_developer)
+- **Role:** role-fe (frontend_developer)
+- **Role:** role-devops (devops_support)
 
 ---
 
@@ -157,295 +47,163 @@ project-root/
 ### ITEM 1: Foundation — shared types, interfaces, DB schemas, config
 
 **Goal:**  
-Establish all shared TypeScript interfaces, enums, types, and utility modules for cross-service use; define the complete PostgreSQL schema (SQL) for all entities; provide shared config and utility functions for DB and JWT; ensure all other items can import these modules.
+Create all shared code and configuration required by backend and frontend. This includes TypeScript interfaces for all data contracts, shared DB connection logic, Redis cache logic, and the complete SQL schema for PostgreSQL. All other items will import from these files.
 
 **Files to create:**
-- backend/shared/models/user.ts — User interface
-- backend/shared/models/plant.ts — Plant interface
-- backend/shared/models/distributionCenter.ts — DistributionCenter interface
-- backend/shared/models/order.ts — Order and OrderItem interfaces
-- backend/shared/types/auth.ts — AuthRequest, AuthResponse interfaces
-- backend/shared/types/kpi.ts — KPIResponse interface
-- backend/shared/utils/jwt.ts — JWT encode/decode helpers
-- backend/shared/utils/db.ts — DB connection helpers (PostgreSQL, Redis)
-- backend/shared/config/index.ts — Shared config, env validation, constants
-- backend/database/migrations/001_init.sql — Full DB schema (User, Plant, DistributionCenter, Order, OrderItem, indexes, FKs)
-- backend/database/seed/seed.sql — Seed data for all tables
-
-**Tests required:**
-- backend/shared/tests/models.test.ts — Validate all interfaces/types (compile-time)
-- backend/shared/tests/utils.test.ts — Test JWT and DB helpers
+- backend/shared/models.ts (create) — All TypeScript interfaces: Catalogo, Pedido, PedidoItem, Usuario, Notificacion (as per SPEC.md §2)
+- backend/shared/db.ts (create) — Shared PostgreSQL connection logic (pooling, env validation)
+- backend/shared/cache.ts (create) — Shared Redis cache logic (connection, get/set helpers)
+- backend/pedido-service/src/config/db.ts (create) — Service-specific DB config (imports shared/db.ts)
+- backend/pedido-service/src/config/redis.ts (create) — Service-specific Redis config (imports shared/cache.ts)
+- backend/pedido-service/src/config/rabbitmq.ts (create) — RabbitMQ connection/config
+- backend/pedido-service/src/config/env.ts (create) — Environment variable validation for all required vars
+- backend/pedido-service/src/utils/validator.ts (create) — Input validation helpers (Joi/Zod schemas for all endpoints)
+- backend/shared/db/schema.sql (create) — Complete PostgreSQL schema for all tables (catalogo, pedido, pedido_item, usuario, notificacion) with indexes and constraints as per SPEC.md §2
 
 **Dependencies:** None
 
 **Validation:**  
-- `tsc --noEmit` in backend/shared/ passes (type correctness)
-- `psql < backend/database/migrations/001_init.sql` creates all tables and indexes without error
-- `psql < backend/database/seed/seed.sql` populates tables with seed data
+- All TypeScript files compile with `tsc --noEmit`.
+- `schema.sql` can be applied to a fresh PostgreSQL 15 instance without errors.
+- Running `node -r ts-node/register backend/shared/db.ts` connects to DB using env vars.
 
 **Role:** role-tl (technical_lead)
 
 ---
 
-### ITEM 2: Auth Service — login, me endpoints, JWT, user DB logic
+### ITEM 2: Backend — Pedido Service (Express API: Catalogo, Pedido, Usuario, Notificacion, Events)
 
 **Goal:**  
-Implement the authentication microservice with endpoints:
-- POST /auth/login (body: AuthRequest, returns AuthResponse)
-- GET /auth/me (JWT-protected, returns User)
-- Healthcheck endpoint
-- JWT validation middleware
-- User DB logic (find by email, password hash check)
-- Structured logging, env validation, error handling
+Implement the full Express.js backend service (`pedido-service`) exposing all endpoints as per SPEC.md §3 for Catalogo, Pedido, Usuario, Notificacion. Includes controllers, services, routes, error handling, event publishing to RabbitMQ, and health check endpoint.
 
 **Files to create:**
-- backend/auth-service/src/index.ts — HTTP server bootstrap (port 8001)
-- backend/auth-service/src/app.ts — Express app setup, registers routers
-- backend/auth-service/src/routes/auth.ts — /auth/login, /auth/me endpoints
-- backend/auth-service/src/controllers/authController.ts — Auth logic
-- backend/auth-service/src/services/userService.ts — User DB logic
-- backend/auth-service/src/middleware/authMiddleware.ts — JWT validation
-- backend/auth-service/src/config/index.ts — Service config/env
-- backend/auth-service/Dockerfile — Multi-stage build, EXPOSE 8001, COPY ../shared ./shared, CMD: node dist/index.js
-- backend/auth-service/package.json — Dependencies, scripts (start, build, test)
-- backend/auth-service/tsconfig.json — TypeScript config (strict)
-- backend/auth-service/tests/auth.test.ts — Tests: login success/failure, me endpoint, JWT validation
+- backend/pedido-service/src/app.ts (create) — Express app setup, registers all routers, error handler, health check
+- backend/pedido-service/src/index.ts (create) — HTTP server bootstrap (reads PORT from env, starts app)
+- backend/pedido-service/src/routes/catalogo.ts (create) — Catalogo endpoints (GET/POST/PUT/DELETE)
+- backend/pedido-service/src/routes/pedido.ts (create) — Pedido endpoints (GET/POST/PUT/DELETE)
+- backend/pedido-service/src/routes/usuario.ts (create) — Usuario endpoints (GET/POST/PUT/DELETE)
+- backend/pedido-service/src/routes/notificacion.ts (create) — Notificacion endpoints (GET/POST/DELETE)
+- backend/pedido-service/src/controllers/catalogoController.ts (create) — Catalogo logic
+- backend/pedido-service/src/controllers/pedidoController.ts (create) — Pedido logic (publishes pedido_creado event)
+- backend/pedido-service/src/controllers/usuarioController.ts (create) — Usuario logic
+- backend/pedido-service/src/controllers/notificacionController.ts (create) — Notificacion logic
+- backend/pedido-service/src/services/catalogoService.ts (create) — Catalogo DB/cache logic
+- backend/pedido-service/src/services/pedidoService.ts (create) — Pedido DB/cache/event logic
+- backend/pedido-service/src/services/usuarioService.ts (create) — Usuario DB/cache logic
+- backend/pedido-service/src/services/notificacionService.ts (create) — Notificacion DB/cache logic
+- backend/pedido-service/src/events/pedidoEvents.ts (create) — RabbitMQ publisher for pedido_creado
+- backend/pedido-service/src/middleware/errorHandler.ts (create) — Centralized error handler (structured logging)
+- backend/pedido-service/Dockerfile (create) — Multi-stage build, non-root, EXPOSE 8001, CMD: `node dist/index.js`
+- backend/pedido-service/package.json (create) — All dependencies, scripts (build, start, dev)
+- backend/pedido-service/tsconfig.json (create) — TypeScript config (strict mode, outDir: dist)
 
 **Dependencies:** Item 1
 
 **Validation:**  
-- `npm run build && npm test` passes
-- Service responds to /auth/login and /auth/me as per SPEC.md
-- Healthcheck endpoint returns status
+- `docker build .` in `backend/pedido-service` succeeds.
+- `docker run` exposes all endpoints on port 8001.
+- `GET /health` returns `{status: "ok", service: "pedido-service", version: "<version>"}`.
+- All endpoints respond as per SPEC.md, with correct validation and error handling.
+- On POST /pedidos, a `pedido_creado` event is published to RabbitMQ.
 
 **Role:** role-be (backend_developer)
 
 ---
 
-### ITEM 3: Order Service — orders CRUD, KPIs, filtering, RabbitMQ events
+### ITEM 3: Frontend — SPA Dashboard (React 18, TypeScript 5)
 
 **Goal:**  
-Implement the order management microservice with endpoints:
-- POST /orders (JWT-protected, CreateOrderRequest → CreateOrderResponse, emits RabbitMQ event)
-- GET /orders (JWT-protected, returns OrderListResponse, supports filtering by plant/status)
-- GET /orders/:id (JWT-protected, returns Order)
-- GET /kpi (JWT-protected, returns KPIResponse, supports filtering)
-- Healthcheck endpoint
-- Order DB logic, KPI calculations, RabbitMQ publisher
-- Structured logging, env validation, error handling
+Implement the full SPA dashboard in React 18 + TypeScript 5. Includes: KPI cards, trend and volume charts, paginated/filterable order table, order creation form with validation, dark/light theme toggle, responsive layouts, error handling (API down, empty data), and project header.
 
 **Files to create:**
-- backend/order-service/src/index.ts — HTTP server bootstrap (port 8002)
-- backend/order-service/src/app.ts — Express app setup, registers routers
-- backend/order-service/src/routes/orders.ts — /orders endpoints
-- backend/order-service/src/routes/kpi.ts — /kpi endpoint
-- backend/order-service/src/controllers/orderController.ts — Order logic
-- backend/order-service/src/controllers/kpiController.ts — KPI logic
-- backend/order-service/src/services/orderService.ts — Order DB logic
-- backend/order-service/src/services/kpiService.ts — KPI calculations
-- backend/order-service/src/middleware/authMiddleware.ts — JWT validation
-- backend/order-service/src/config/index.ts — Service config/env
-- backend/order-service/Dockerfile — Multi-stage build, EXPOSE 8002, COPY ../shared ./shared, CMD: node dist/index.js
-- backend/order-service/package.json — Dependencies, scripts
-- backend/order-service/tsconfig.json — TypeScript config
-- backend/order-service/tests/orders.test.ts — Tests: create order, list/filter, get by id, KPI, error cases
+- frontend/src/main.tsx (create) — React entry point (mounts App)
+- frontend/src/App.tsx (create) — Root component, layout, theme provider, error boundary
+- frontend/src/api/catalogoApi.ts (create) — API client for Catalogo endpoints
+- frontend/src/api/pedidoApi.ts (create) — API client for Pedido endpoints
+- frontend/src/api/usuarioApi.ts (create) — API client for Usuario endpoints
+- frontend/src/api/notificacionApi.ts (create) — API client for Notificacion endpoints
+- frontend/src/hooks/useCatalogo.ts (create) — Data fetching, caching, error state for Catalogo
+- frontend/src/hooks/usePedidos.ts (create) — Data fetching, filtering, error state for Pedidos
+- frontend/src/hooks/useUsuarios.ts (create) — Data fetching, error state for Usuarios
+- frontend/src/hooks/useNotificaciones.ts (create) — Data fetching, error state for Notificaciones
+- frontend/src/components/CatalogoList.tsx (create) — Catalogo list UI
+- frontend/src/components/CatalogoForm.tsx (create) — Catalogo creation/edit form
+- frontend/src/components/PedidoList.tsx (create) — Pedido table with pagination, filters, detail view
+- frontend/src/components/PedidoForm.tsx (create) — Pedido creation form with validation, error handling
+- frontend/src/components/UsuarioList.tsx (create) — Usuario list UI
+- frontend/src/components/UsuarioForm.tsx (create) — Usuario creation/edit form
+- frontend/src/components/NotificacionList.tsx (create) — Notificacion list UI
+- frontend/src/components/NotificacionForm.tsx (create) — Notificacion creation form
+- frontend/src/components/KPICards.tsx (create) — 4 KPI cards (total units, completed orders, avg delivery days, fulfillment rate)
+- frontend/src/components/TrendChart.tsx (create) — Line chart for units/month (last 6 months)
+- frontend/src/components/VolumeByPlantChart.tsx (create) — Bar chart for volume by plant
+- frontend/src/components/Header.tsx (create) — Project name, subtitle, theme toggle
+- frontend/src/components/ErrorBanner.tsx (create) — API down banner with retry
+- frontend/src/types/models.ts (create) — All frontend TypeScript interfaces (mirrors backend/shared/models.ts)
+- frontend/src/utils/format.ts (create) — Formatting helpers (dates, numbers)
+- frontend/public/index.html (create) — HTML entry point
+- frontend/Dockerfile (create) — Multi-stage build, non-root, EXPOSE 5173, CMD: `npm run preview` or `serve dist`
+- frontend/package.json (create) — All dependencies, scripts (build, start, dev)
+- frontend/tsconfig.json (create) — TypeScript config (strict mode, outDir: dist)
 
 **Dependencies:** Item 1
 
 **Validation:**  
-- `npm run build && npm test` passes
-- Service responds to all /orders and /kpi endpoints as per SPEC.md
-- Healthcheck endpoint returns status
-
-**Role:** role-be (backend_developer)
-
----
-
-### ITEM 4: Plant Service — plant catalog endpoints
-
-**Goal:**  
-Implement the plant catalog microservice with endpoint:
-- GET /plants (JWT-protected, returns { plants: Plant[] })
-- Healthcheck endpoint
-- Plant DB logic
-- Structured logging, env validation, error handling
-
-**Files to create:**
-- backend/plant-service/src/index.ts — HTTP server bootstrap (port 8003)
-- backend/plant-service/src/app.ts — Express app setup, registers routers
-- backend/plant-service/src/routes/plants.ts — /plants endpoint
-- backend/plant-service/src/controllers/plantController.ts — Plant logic
-- backend/plant-service/src/services/plantService.ts — Plant DB logic
-- backend/plant-service/src/middleware/authMiddleware.ts — JWT validation
-- backend/plant-service/src/config/index.ts — Service config/env
-- backend/plant-service/Dockerfile — Multi-stage build, EXPOSE 8003, COPY ../shared ./shared, CMD: node dist/index.js
-- backend/plant-service/package.json — Dependencies, scripts
-- backend/plant-service/tsconfig.json — TypeScript config
-- backend/plant-service/tests/plants.test.ts — Tests: list plants, error cases
-
-**Dependencies:** Item 1
-
-**Validation:**  
-- `npm run build && npm test` passes
-- Service responds to /plants as per SPEC.md
-- Healthcheck endpoint returns status
-
-**Role:** role-be (backend_developer)
-
----
-
-### ITEM 5: Distribution Center Service — distribution center catalog endpoints
-
-**Goal:**  
-Implement the distribution center catalog microservice with endpoint:
-- GET /distribution-centers (JWT-protected, returns { distribution_centers: DistributionCenter[] })
-- Healthcheck endpoint
-- DistributionCenter DB logic
-- Structured logging, env validation, error handling
-
-**Files to create:**
-- backend/distribution-service/src/index.ts — HTTP server bootstrap (port 8004)
-- backend/distribution-service/src/app.ts — Express app setup, registers routers
-- backend/distribution-service/src/routes/distributionCenters.ts — /distribution-centers endpoint
-- backend/distribution-service/src/controllers/distributionController.ts — DistributionCenter logic
-- backend/distribution-service/src/services/distributionService.ts — DistributionCenter DB logic
-- backend/distribution-service/src/middleware/authMiddleware.ts — JWT validation
-- backend/distribution-service/src/config/index.ts — Service config/env
-- backend/distribution-service/Dockerfile — Multi-stage build, EXPOSE 8004, COPY ../shared ./shared, CMD: node dist/index.js
-- backend/distribution-service/package.json — Dependencies, scripts
-- backend/distribution-service/tsconfig.json — TypeScript config
-- backend/distribution-service/tests/distributionCenters.test.ts — Tests: list distribution centers, error cases
-
-**Dependencies:** Item 1
-
-**Validation:**  
-- `npm run build && npm test` passes
-- Service responds to /distribution-centers as per SPEC.md
-- Healthcheck endpoint returns status
-
-**Role:** role-be (backend_developer)
-
----
-
-### ITEM 6: Order Worker — RabbitMQ consumer, inventory update logic
-
-**Goal:**  
-Implement the order-worker microservice:
-- Consumes order.created events from RabbitMQ
-- Updates inventory (logic in inventoryService.ts)
-- Healthcheck endpoint
-- Structured logging, env validation, error handling
-
-**Files to create:**
-- backend/order-worker/src/index.ts — Worker entry point (port 8005)
-- backend/order-worker/src/worker/orderConsumer.ts — RabbitMQ consumer for order.created
-- backend/order-worker/src/services/inventoryService.ts — Inventory update logic
-- backend/order-worker/src/config/index.ts — Worker config/env
-- backend/order-worker/Dockerfile — Multi-stage build, EXPOSE 8005, COPY ../shared ./shared, CMD: node dist/index.js
-- backend/order-worker/package.json — Dependencies, scripts
-- backend/order-worker/tsconfig.json — TypeScript config
-- backend/order-worker/tests/orderConsumer.test.ts — Tests: consume event, update inventory, error cases
-
-**Dependencies:** Item 1
-
-**Validation:**  
-- `npm run build && npm test` passes
-- Worker consumes events and updates inventory as expected
-- Healthcheck endpoint returns status
-
-**Role:** role-be (backend_developer)
-
----
-
-### ITEM 7: Frontend — React dashboard, forms, charts, state, API integration
-
-**Goal:**  
-Implement the complete frontend application:
-- Responsive dashboard with:
-  - Header (DistroViz, subtitle, dark/light toggle)
-  - Filters (plant, order status) — reloads KPIs, charts, table
-  - 4 KPI cards (total units, completed orders, avg delivery days, fulfillment rate) with loading indicators
-  - Line chart (units by month, last 6 months, tooltip)
-  - Bar chart (volume by plant, colored, tooltip)
-  - Paginated order table (10 rows, columns: plant, center, quantity, status badge, dispatch date, delivery date, alt row colors)
-  - Order creation form (plant selector, center selector, quantity, status, dispatch date, delivery date optional)
-  - Local/dynamic validation, error handling, success notifications, form reset
-  - API error handling (toast), data preservation on error
-  - Responsive design for desktop/tablet
-- State management with Redux Toolkit
-- API integration with axios
-- Healthcheck endpoint (for container)
-- Tests for all major components and flows
-
-**Files to create:**
-- frontend/src/main.tsx — React entry point
-- frontend/src/App.tsx — Root component, layout, routing
-- frontend/src/api/auth.ts — Auth API client
-- frontend/src/api/orders.ts — Orders API client
-- frontend/src/api/plants.ts — Plants API client
-- frontend/src/api/distributionCenters.ts — DistributionCenters API client
-- frontend/src/components/Header.tsx — Header with theme toggle
-- frontend/src/components/Filters.tsx — Plant/status filters
-- frontend/src/components/KPICards.tsx — 4 KPI cards
-- frontend/src/components/LineChart.tsx — Trend chart
-- frontend/src/components/BarChart.tsx — Volume by plant
-- frontend/src/components/OrderTable.tsx — Paginated order table
-- frontend/src/components/OrderForm.tsx — Order creation form
-- frontend/src/components/Notification.tsx — Toast notifications
-- frontend/src/store/index.ts — Redux store setup
-- frontend/src/store/ordersSlice.ts — Orders state
-- frontend/src/store/kpiSlice.ts — KPI state
-- frontend/src/store/plantsSlice.ts — Plants state
-- frontend/src/store/distributionCentersSlice.ts — DistributionCenters state
-- frontend/Dockerfile — Multi-stage build, EXPOSE 80, healthcheck, ARG VITE_API_URL
-- frontend/package.json — Dependencies, scripts
-- frontend/tsconfig.json — TypeScript config
-- frontend/tests/Header.test.tsx — Header tests
-- frontend/tests/OrderForm.test.tsx — Form validation, submit, error
-- frontend/tests/OrderTable.test.tsx — Table rendering, pagination
-- frontend/tests/KPICards.test.tsx — KPI loading, error
-- frontend/tests/Charts.test.tsx — Chart rendering, tooltips
-
-**Dependencies:** Item 1
-
-**Validation:**  
-- `npm run build && npm test` passes
-- App loads, all dashboard features work, forms validate, API errors handled
-- Healthcheck endpoint returns status
+- `docker build .` in `frontend` succeeds.
+- `docker run` exposes the SPA at port 5173 (or as configured).
+- All UI elements render and update as per acceptance criteria.
+- API requests go through Kong gateway and display correct data/errors.
 
 **Role:** role-fe (frontend_developer)
 
 ---
 
-### ITEM 8: Infrastructure & Deployment
+### ITEM 4: API Gateway — Kong Configuration
 
 **Goal:**  
-Provide complete orchestration and documentation for local development and deployment:
-- Docker Compose for all services (Postgres, Redis, RabbitMQ, Kong, all backend services, frontend)
-- Healthchecks for every service
-- depends_on with service_healthy
-- .env.example with all variables and descriptions
-- .gitignore, .dockerignore for all build artifacts and secrets
-- run.sh: validates Docker, builds, starts, waits for healthy, prints access URL
-- README.md: setup, run, test, endpoints, troubleshooting
-- docs/architecture.md: system diagram, component descriptions
+Configure Kong API Gateway to route all frontend and API requests to the correct backend service(s), with declarative YAML config and Dockerfile for Kong container.
 
 **Files to create:**
-- docker-compose.yml
-- .env.example
-- .gitignore
-- .dockerignore
-- run.sh
-- README.md
-- docs/architecture.md
+- kong/kong.yml (create) — Declarative config for all routes/services (as per SPEC.md §4)
+- kong/Dockerfile (create) — Kong container build (copies kong.yml, sets up plugins as needed)
 
-**Dependencies:** All previous items
+**Dependencies:** Item 2, Item 3
 
 **Validation:**  
-- `./run.sh` completes without errors
-- All services report healthy
-- Frontend accessible at http://localhost:<frontend-port>
-- All API endpoints functional
+- `docker build .` in `kong` succeeds.
+- Kong routes `/api/*` to backend/pedido-service, `/` to frontend.
+- Healthcheck endpoint for Kong responds with 200.
+
+**Role:** role-devops (devops_support)
+
+---
+
+### ITEM 5: Infrastructure & Deployment
+
+**Goal:**  
+Provide complete local orchestration and documentation for the project. Includes Docker Compose for all services (with healthchecks and depends_on), environment variable template, run script, ignore files, and architecture docs.
+
+**Files to create:**
+- docker-compose.yml (create) — All services (frontend, backend/pedido-service, postgres, redis, rabbitmq, kong) with healthchecks and correct port mappings
+- .env.example (create) — All required environment variables with descriptions and example values
+- .gitignore (create) — Exclude node_modules, dist, .env, .DS_Store, logs, etc.
+- .dockerignore (create) — Exclude node_modules, .git, dist, logs, etc.
+- run.sh (create) — Checks Docker, builds images, starts all services, waits for healthy, prints access URL
+- README.md (create) — Prerequisites, setup, run instructions, endpoints, troubleshooting
+- docs/architecture.md (create) — System diagram, component descriptions, deployment notes
+- terraform/main.tf (create) — Terraform config for AWS EKS, RDS, ElastiCache, etc.
+- terraform/variables.tf (create) — Terraform variables
+- terraform/outputs.tf (create) — Terraform outputs
+- terraform/provider.tf (create) — AWS provider config
+
+**Dependencies:** Items 1–4
+
+**Validation:**  
+- `./run.sh` completes without errors.
+- All containers are healthy (`docker ps` shows healthy status).
+- Frontend accessible at `http://localhost:<frontend-port>`.
+- All API endpoints functional via Kong gateway.
+- README instructions allow a new developer to run the project end-to-end.
 
 **Role:** role-devops (devops_support)
 

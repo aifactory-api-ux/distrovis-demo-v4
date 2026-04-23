@@ -1,52 +1,33 @@
 #!/bin/bash
 set -e
 
-echo "=== DistroViz Startup Script ==="
-
+echo "Checking Docker..."
 if ! command -v docker &> /dev/null; then
-    echo "Error: Docker is not installed. Please install Docker first."
+    echo "Docker is not installed. Please install Docker."
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
-    echo "Error: Docker Compose is not installed. Please install Docker Compose first."
+if ! command -v docker-compose &> /dev/null; then
+    echo "Docker Compose is not installed. Please install Docker Compose."
     exit 1
 fi
 
-echo "Building and starting all services..."
+echo "Building and starting services..."
+docker-compose up --build -d
 
-if docker compose version &> /dev/null; then
-    docker compose up -d --build
-else
-    docker-compose up -d --build
-fi
-
-echo ""
 echo "Waiting for services to be healthy..."
+sleep 30
 
-sleep 10
-
-echo ""
-echo "=== Service Status ==="
-if docker compose version &> /dev/null; then
-    docker compose ps
-else
-    docker-compose ps
-fi
+echo "Checking service health..."
+docker-compose ps
 
 echo ""
-echo "=== Access Points ==="
-echo "Frontend:     http://localhost:3000"
-echo "Auth Service: http://localhost:8001"
-echo "Order Service: http://localhost:8002"
-echo "Plant Service: http://localhost:8003"
-echo "Distribution:  http://localhost:8004"
-echo "Order Worker:  http://localhost:8005"
-echo "RabbitMQ:      http://localhost:15672 (guest/guest)"
+echo "=========================================="
+echo "Services are running!"
+echo "Frontend: http://localhost:5173"
+echo "API Gateway (Kong): http://localhost:8000"
+echo "Health Check: http://localhost:8000/health"
+echo "=========================================="
 echo ""
-echo "Login credentials:"
-echo "  Email:    admin@distroviz.com"
-echo "  Password: password123"
-echo ""
-echo "To view logs: docker compose logs -f [service-name]"
-echo "To stop:     docker compose down"
+echo "To view logs: docker-compose logs -f"
+echo "To stop services: docker-compose down"

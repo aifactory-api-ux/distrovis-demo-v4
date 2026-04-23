@@ -1,239 +1,46 @@
 # API_CONTRACT.md
 
----
+## Catalogo
 
-## Auth Service
-
-### POST /auth/login
-
-| Property         | Value                |
-|------------------|---------------------|
-| HTTP Method      | POST                |
-| Path             | /auth/login         |
-| Auth Required    | No                  |
-| Request Body     | `AuthRequest`       |
-| Response Body    | `AuthResponse`      |
-| Status Codes     | 200                 |
-
-#### Request Body: AuthRequest
-
-| Field    | Type     | Required |
-|----------|----------|----------|
-| email    | string   | Yes      |
-| password | string   | Yes      |
-
-#### Response Body: AuthResponse
-
-| Field | Type   |
-|-------|--------|
-| token | string |
-| user  | User   |
+| Method | Path              | Auth Required | Request Body                                                                                                                                      | Response Schema                                                                                                                                                                                                                 | Status Codes |
+|--------|-------------------|--------------|---------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
+| GET    | /catalogo         | No           | N/A                                                                                                                                              | `Catalogo[]`<br><br>```json<br>[<br>  {<br>    "id": number,<br>    "nombre": "string",<br>    "descripcion": "string",<br>    "precio": number,<br>    "stock": number<br>  }<br>]```                                         | 200          |
+| GET    | /catalogo/:id     | No           | N/A                                                                                                                                              | `Catalogo`<br><br>```json<br>{<br>  "id": number,<br>  "nombre": "string",<br>  "descripcion": "string",<br>  "precio": number,<br>  "stock": number<br>}```                                                                   | 200          |
+| POST   | /catalogo         | No           | ```json<br>{<br>  "nombre": "string",<br>  "descripcion": "string",<br>  "precio": number,<br>  "stock": number<br>}```                           | `Catalogo`<br><br>```json<br>{<br>  "id": number,<br>  "nombre": "string",<br>  "descripcion": "string",<br>  "precio": number,<br>  "stock": number<br>}```                                                                   | 201          |
+| PUT    | /catalogo/:id     | No           | ```json<br>{<br>  "nombre": "string",<br>  "descripcion": "string",<br>  "precio": number,<br>  "stock": number<br>}```                           | `Catalogo`<br><br>```json<br>{<br>  "id": number,<br>  "nombre": "string",<br>  "descripcion": "string",<br>  "precio": number,<br>  "stock": number<br>}```                                                                   | 200          |
+| DELETE | /catalogo/:id     | No           | N/A                                                                                                                                              | ```json<br>{ "success": boolean }```                                                                                                                                                                                           | 200          |
 
 ---
 
-### GET /auth/me
+## Pedido
 
-| Property         | Value                |
-|------------------|---------------------|
-| HTTP Method      | GET                 |
-| Path             | /auth/me            |
-| Auth Required    | Yes (Bearer token)  |
-| Request Body     | None                |
-| Response Body    | `User`              |
-| Status Codes     | 200                 |
-
-#### Response Body: User
-
-| Field         | Type                              |
-|---------------|-----------------------------------|
-| id            | string                            |
-| email         | string                            |
-| password_hash | string                            |
-| role          | 'admin' \| 'operator' \| 'viewer' |
+| Method | Path              | Auth Required | Request Body                                                                                                                                                                                                                                                                                                                                                                                                         | Response Schema                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Status Codes |
+|--------|-------------------|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
+| GET    | /pedidos          | No           | N/A                                                                                                                                                                                                                                                                                                                                                                                                                 | `Pedido[]`<br><br>```json<br>[<br>  {<br>    "id": number,<br>    "usuario_id": number,<br>    "fecha": "YYYY-MM-DD",<br>    "estado": "string",<br>    "total": number,<br>    "items": [<br>      {<br>        "catalogo_id": number,<br>        "cantidad": number,<br>        "precio_unitario": number<br>      }<br>    ]<br>  }<br>]```                                                                                                    | 200          |
+| GET    | /pedidos/:id      | No           | N/A                                                                                                                                                                                                                                                                                                                                                                                                                 | `Pedido`<br><br>```json<br>{<br>  "id": number,<br>  "usuario_id": number,<br>  "fecha": "YYYY-MM-DD",<br>  "estado": "string",<br>  "total": number,<br>  "items": [<br>    {<br>      "catalogo_id": number,<br>      "cantidad": number,<br>      "precio_unitario": number<br>    }<br>  ]<br>}```                                                                                                                                | 200          |
+| POST   | /pedidos          | No           | ```json<br>{<br>  "usuario_id": number,<br>  "fecha": "YYYY-MM-DD",<br>  "estado": "string",<br>  "total": number,<br>  "items": [<br>    {<br>      "catalogo_id": number,<br>      "cantidad": number,<br>      "precio_unitario": number<br>    }<br>  ]<br>}```                                                                                                                                                      | `Pedido`<br><br>```json<br>{<br>  "id": number,<br>  "usuario_id": number,<br>  "fecha": "YYYY-MM-DD",<br>  "estado": "string",<br>  "total": number,<br>  "items": [<br>    {<br>      "catalogo_id": number,<br>      "cantidad": number,<br>      "precio_unitario": number<br>    }<br>  ]<br>}```                                                                                                                                | 201          |
+| PUT    | /pedidos/:id      | No           | ```json<br>{<br>  "estado": "string"<br>}```                                                                                                                                                                                                                                                                                                                                                                         | `Pedido`<br><br>```json<br>{<br>  "id": number,<br>  "usuario_id": number,<br>  "fecha": "YYYY-MM-DD",<br>  "estado": "string",<br>  "total": number,<br>  "items": [<br>    {<br>      "catalogo_id": number,<br>      "cantidad": number,<br>      "precio_unitario": number<br>    }<br>  ]<br>}```                                                                                                                                | 200          |
+| DELETE | /pedidos/:id      | No           | N/A                                                                                                                                                                                                                                                                                                                                                                                                                 | ```json<br>{ "success": boolean }```                                                                                                                                                                                                                                                                                                                                                                                                                                      | 200          |
 
 ---
 
-## Order Service
+## Usuario
 
-### POST /orders
-
-| Property         | Value                |
-|------------------|---------------------|
-| HTTP Method      | POST                |
-| Path             | /orders             |
-| Auth Required    | Yes (Bearer token)  |
-| Request Body     | `CreateOrderRequest`|
-| Response Body    | `CreateOrderResponse`|
-| Status Codes     | 201                 |
-
-#### Request Body: CreateOrderRequest
-
-| Field                  | Type     | Required |
-|------------------------|----------|----------|
-| plant_id               | string   | Yes      |
-| distribution_center_id | string   | Yes      |
-| items                  | array of objects | Yes |
-
-Each item in `items`:
-
-| Field        | Type     | Required |
-|--------------|----------|----------|
-| product_name | string   | Yes      |
-| quantity     | number   | Yes      |
-| unit_price   | number   | Yes      |
-
-#### Response Body: CreateOrderResponse
-
-| Field | Type   |
-|-------|--------|
-| order | Order  |
+| Method | Path              | Auth Required | Request Body                                                                                                                                      | Response Schema                                                                                                                                                                                                                 | Status Codes |
+|--------|-------------------|--------------|---------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
+| GET    | /usuarios         | No           | N/A                                                                                                                                              | `Usuario[]`<br><br>```json<br>[<br>  {<br>    "id": number,<br>    "nombre": "string",<br>    "email": "string",<br>    "rol": "string"<br>  }<br>]```                                                                        | 200          |
+| GET    | /usuarios/:id     | No           | N/A                                                                                                                                              | `Usuario`<br><br>```json<br>{<br>  "id": number,<br>  "nombre": "string",<br>  "email": "string",<br>  "rol": "string"<br>}```                                                                                               | 200          |
+| POST   | /usuarios         | No           | ```json<br>{<br>  "nombre": "string",<br>  "email": "string",<br>  "rol": "string"<br>}```                                                       | `Usuario`<br><br>```json<br>{<br>  "id": number,<br>  "nombre": "string",<br>  "email": "string",<br>  "rol": "string"<br>}```                                                                                               | 201          |
+| PUT    | /usuarios/:id     | No           | ```json<br>{<br>  "nombre": "string",<br>  "email": "string",<br>  "rol": "string"<br>}```                                                       | `Usuario`<br><br>```json<br>{<br>  "id": number,<br>  "nombre": "string",<br>  "email": "string",<br>  "rol": "string"<br>}```                                                                                               | 200          |
+| DELETE | /usuarios/:id     | No           | N/A                                                                                                                                              | ```json<br>{ "success": boolean }```                                                                                                                                                                                           | 200          |
 
 ---
 
-### GET /orders
+## Notificacion
 
-| Property         | Value                |
-|------------------|---------------------|
-| HTTP Method      | GET                 |
-| Path             | /orders             |
-| Auth Required    | Yes (Bearer token)  |
-| Request Body     | None                |
-| Response Body    | `OrderListResponse` |
-| Status Codes     | 200                 |
-
-#### Response Body: OrderListResponse
-
-| Field  | Type         |
-|--------|--------------|
-| orders | Order array  |
-
----
-
-### GET /orders/:id
-
-| Property         | Value                |
-|------------------|---------------------|
-| HTTP Method      | GET                 |
-| Path             | /orders/:id         |
-| Auth Required    | Yes (Bearer token)  |
-| Request Body     | None                |
-| Response Body    | `Order`             |
-| Status Codes     | 200                 |
-
----
-
-### GET /kpi
-
-| Property         | Value                |
-|------------------|---------------------|
-| HTTP Method      | GET                 |
-| Path             | /kpi                |
-| Auth Required    | Yes (Bearer token)  |
-| Request Body     | None                |
-| Response Body    | `KPIResponse`       |
-| Status Codes     | 200                 |
-
-#### Response Body: KPIResponse
-
-| Field            | Type   |
-|------------------|--------|
-| total_units      | number |
-| total_orders     | number |
-| completed_orders | number |
-| pending_orders   | number |
-
----
-
-## Plant Service
-
-### GET /plants
-
-| Property         | Value                |
-|------------------|---------------------|
-| HTTP Method      | GET                 |
-| Path             | /plants             |
-| Auth Required    | Yes (Bearer token)  |
-| Request Body     | None                |
-| Response Body    | `{ plants: Plant[] }`|
-| Status Codes     | 200                 |
-
-#### Response Body
-
-| Field  | Type         |
-|--------|--------------|
-| plants | Plant array  |
-
----
-
-## Distribution Center Service
-
-### GET /distribution-centers
-
-| Property         | Value                |
-|------------------|---------------------|
-| HTTP Method      | GET                 |
-| Path             | /distribution-centers|
-| Auth Required    | Yes (Bearer token)  |
-| Request Body     | None                |
-| Response Body    | `{ distribution_centers: DistributionCenter[] }`|
-| Status Codes     | 200                 |
-
-#### Response Body
-
-| Field                | Type                      |
-|----------------------|--------------------------|
-| distribution_centers | DistributionCenter array |
-
----
-
-## Data Schemas
-
-### User
-
-| Field         | Type                              |
-|---------------|-----------------------------------|
-| id            | string                            |
-| email         | string                            |
-| password_hash | string                            |
-| role          | 'admin' \| 'operator' \| 'viewer' |
-
-### Plant
-
-| Field    | Type   |
-|----------|--------|
-| id       | string |
-| name     | string |
-| location | string |
-
-### DistributionCenter
-
-| Field   | Type   |
-|---------|--------|
-| id      | string |
-| name    | string |
-| address | string |
-
-### Order
-
-| Field                  | Type                                   |
-|------------------------|----------------------------------------|
-| id                     | string                                 |
-| user_id                | string                                 |
-| plant_id               | string                                 |
-| distribution_center_id | string                                 |
-| status                 | 'pending' \| 'processing' \| 'completed' \| 'cancelled' |
-| created_at             | string (ISO 8601 datetime)             |
-| updated_at             | string (ISO 8601 datetime)             |
-| items                  | OrderItem array                        |
-
-### OrderItem
-
-| Field        | Type   |
-|--------------|--------|
-| id           | string |
-| order_id     | string |
-| product_name | string |
-| quantity     | number |
-| unit_price   | number |
-
----
+| Method | Path                   | Auth Required | Request Body                                                                                                                                      | Response Schema                                                                                                                                                                                                                 | Status Codes |
+|--------|------------------------|--------------|---------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
+| GET    | /notificaciones        | No           | N/A                                                                                                                                              | `Notificacion[]`<br><br>```json<br>[<br>  {<br>    "id": number,<br>    "pedido_id": number,<br>    "tipo": "string",<br>    "mensaje": "string",<br>    "fecha_envio": "YYYY-MM-DDTHH:MM:SSZ"<br>  }<br>]```                  | 200          |
+| GET    | /notificaciones/:id    | No           | N/A                                                                                                                                              | `Notificacion`<br><br>```json<br>{<br>  "id": number,<br>  "pedido_id": number,<br>  "tipo": "string",<br>  "mensaje": "string",<br>  "fecha_envio": "YYYY-MM-DDTHH:MM:SSZ"<br>}```                                            | 200          |
+| POST   | /notificaciones        | No           | ```json<br>{<br>  "pedido_id": number,<br>  "tipo": "string",<br>  "mensaje": "string",<br>  "fecha_envio": "YYYY-MM-DDTHH:MM:SSZ"<br>}```        | `Notificacion`<br><br>```json<br>{<br>  "id": number,<br>  "pedido_id": number,<br>  "tipo": "string",<br>  "mensaje": "string",<br>  "fecha_envio": "YYYY-MM-DDTHH:MM:SSZ"<br>}```                                            | 201          |
+| DELETE | /notificaciones/:id    | No           | N/A                                                                                                                                              | ```json<br>{ "success": boolean }```                                                                                                                                                                                           | 200          |

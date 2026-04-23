@@ -1,25 +1,22 @@
 import React, { useState } from 'react';
 
-interface HeaderProps {
-  onThemeToggle: () => void;
+interface Props {
+  onToggleTheme: () => void;
   theme: 'light' | 'dark';
 }
 
-export const Header: React.FC<HeaderProps> = ({ onThemeToggle, theme }) => {
+export function Header({ onToggleTheme, theme }: Props) {
   return (
-    <header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 shadow-lg">
-      <div className="container mx-auto flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">DistroViz</h1>
-          <p className="text-blue-200 text-sm">Distribution Visualization Dashboard</p>
+    <header className="header">
+      <div className="header-content">
+        <div className="header-title">
+          <h1>Distrovis</h1>
+          <p>Dashboard de Pedidos</p>
         </div>
-        <button
-          onClick={onThemeToggle}
-          className="px-4 py-2 bg-blue-500 hover:bg-blue-400 rounded-lg transition-colors"
-        >
-          {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
+        <button onClick={onToggleTheme} className="theme-toggle">
+          {theme === 'light' ? '🌙' : '☀️'}
         </button>
       </div>
     </header>
   );
-};
+}

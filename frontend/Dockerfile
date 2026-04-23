@@ -1,14 +1,14 @@
-FROM node:20-alpine AS builder
+FROM node:20-slim
+
 WORKDIR /app
+
 COPY package*.json ./
 RUN npm install
+
 COPY . .
+
 RUN npm run build
 
-FROM node:20-alpine
-WORKDIR /app
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-EXPOSE 80
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "80"]
+EXPOSE 5173
+
+CMD ["npm", "run", "preview"]

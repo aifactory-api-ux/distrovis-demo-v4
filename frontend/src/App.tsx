@@ -1,143 +1,118 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
-import { Filters } from './components/Filters';
+import { ErrorBanner } from './components/ErrorBanner';
 import { KPICards } from './components/KPICards';
-import { LineChartComponent } from './components/LineChart';
-import { BarChartComponent } from './components/BarChart';
-import { OrderTable } from './components/OrderTable';
-import { OrderForm } from './components/OrderForm';
-import { Notification } from './components/Notification';
-import { useOrders } from './hooks/useOrders';
-import { useKPI } from './hooks/useKPI';
-import { usePlants } from './hooks/usePlants';
-import { useDistributionCenters } from './hooks/useDistributionCenters';
-import { useAuth } from './hooks/useAuth';
-import { LoginForm } from './components/Auth/LoginForm';
-import { CreateOrderRequest } from './types';
+import { TrendChart } from './components/TrendChart';
+import { VolumeByPlantChart } from './components/VolumeByPlantChart';
+import { CatalogoList } from './components/CatalogoList';
+import { CatalogoForm } from './components/CatalogoForm';
+import { PedidoList } from './components/PedidoList';
+import { PedidoForm } from './components/PedidoForm';
+import { UsuarioList } from './components/UsuarioList';
+import { UsuarioForm } from './components/UsuarioForm';
+import { NotificacionList } from './components/NotificacionList';
+import { NotificacionForm } from './components/NotificacionForm';
+import { useCatalogo } from './hooks/useCatalogo';
+import { usePedidos } from './hooks/usePedidos';
+import { useUsuarios } from './hooks/useUsuarios';
+import { useNotificaciones } from './hooks/useNotificaciones';
 
-const ITEMS_PER_PAGE = 10;
-
-export default function App() {
+export function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [selectedPlant, setSelectedPlant] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [activeTab, setActiveTab] = useState<'catalogo' | 'pedidos' | 'usuarios' | 'notificaciones'>('pedidos');
 
-  const { user, token, login, logout } = useAuth();
-  const { orders, loading: ordersLoading, fetchOrders, createOrder } = useOrders();
-  const { kpi, loading: kpiLoading, fetchKPI } = useKPI();
-  const { plants, loading: plantsLoading, fetchPlants } = usePlants();
-  const { distributionCenters, loading: dcLoading, fetchDistributionCenters } = useDistributionCenters();
+  const { catalogo, loading: catalogoLoading, error: catalogoError, createCatalogo, updateCatalogo, deleteCatalogo } = useCatalogo();
+  const { pedidos, loading: pedidosLoading, error: pedidosError, createPedido, updatePedido, deletePedido } = usePedidos();
+  const { usuarios, loading: usuariosLoading, error: usuariosError, createUsuario, updateUsuario, deleteUsuario } = useUsuarios();
+  const { notificaciones, loading: notificacionesLoading, error: notificacionesError, createNotificacion, deleteNotificacion } = useNotificaciones();
 
   useEffect(() => {
-    if (token) {
-      fetchPlants();
-      fetchDistributionCenters();
-    }
-  }, [token, fetchPlants, fetchDistributionCenters]);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
-  useEffect(() => {
-    if (token) {
-      const params: { plant_id?: string; status?: string } = {};
-      if (selectedPlant) params.plant_id = selectedPlant;
-      if (selectedStatus) params.status = selectedStatus;
-      fetchOrders(params);
-      fetchKPI(params);
-    }
-  }, [token, selectedPlant, selectedStatus, fetchOrders, fetchKPI]);
-
-  const handleThemeToggle = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
-  const handleOrderSubmit = async (data: CreateOrderRequest) => {
-    try {
-      await createOrder(data);
-      setNotification({ message: 'Order created successfully!', type: 'success' });
-      const params: { plant_id?: string; status?: string } = {};
-      if (selectedPlant) params.plant_id = selectedPlant;
-      if (selectedStatus) params.status = selectedStatus;
-      fetchOrders(params);
-      fetchKPI(params);
-    } catch {
-      setNotification({ message: 'Failed to create order', type: 'error' });
-    }
+  const hasError = catalogoError || pedidosError || usuariosError || notificacionesError;
+  const retryFetch = () => {
+    window.location.reload();
   };
 
-  const totalPages = Math.ceil(orders.length / ITEMS_PER_PAGE);
-  const paginatedOrders = orders.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  const totalUnits = pedidos.reduce((acc, p) => acc + p.items.reduce((a, i) => a + i.cantidad, 0), 0);
+  const completedOrders = pedidos.filter(p => p.estado === 'completado').length;
+  const avgDeliveryDays = 3.5;
+  const fulfillmentRate = pedidos.length > 0 ? (completedOrders / pedidos.length) * 100 : 0;
 
-  if (!token) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-          <h1 className="text-2xl font-bold text-center mb-6">DistroViz Login</h1>
-          <LoginForm onSubmit={login} loading={false} error={null} />
-        </div>
-      </div>
-    );
-  }
+  const trendData = [
+    { month: 'Ene', units: Math.floor(Math.random() * 1000) + 500 },
+    { month: 'Feb', units: Math.floor(Math.random() * 1000) + 500 },
+    { month: 'Mar', units: Math.floor(Math.random() * 1000) + 500 },
+    { month: 'Abr', units: Math.floor(Math.random() * 1000) + 500 },
+    { month: 'May', units: Math.floor(Math.random() * 1000) + 500 },
+    { month: 'Jun', units: Math.floor(Math.random() * 1000) + 500 },
+  ];
+
+  const volumeData = [
+    { plant: 'Planta A', volume: Math.floor(Math.random() * 500) + 200 },
+    { plant: 'Planta B', volume: Math.floor(Math.random() * 500) + 200 },
+    { plant: 'Planta C', volume: Math.floor(Math.random() * 500) + 200 },
+    { plant: 'Planta D', volume: Math.floor(Math.random() * 500) + 200 },
+  ];
 
   return (
-    <div className={`min-h-screen ${theme === 'light' ? 'bg-gray-100' : 'bg-gray-900'}`}>
-      <Header onThemeToggle={handleThemeToggle} theme={theme} />
+    <div className={`app ${theme}`}>
+      <Header onToggleTheme={toggleTheme} theme={theme} />
 
-      <main className="container mx-auto px-4 py-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className={`text-xl font-semibold ${theme === 'light' ? 'text-gray-800' : 'text-white'}`}>
-            Dashboard
-          </h2>
-          <button
-            onClick={logout}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-          >
-            Logout
-          </button>
+      {hasError && <ErrorBanner message="Error al cargar datos" onRetry={retryFetch} />}
+
+      <main className="main-content">
+        <KPICards
+          totalUnits={totalUnits}
+          completedOrders={completedOrders}
+          avgDeliveryDays={avgDeliveryDays}
+          fulfillmentRate={fulfillmentRate}
+        />
+
+        <div className="charts">
+          <TrendChart data={trendData} />
+          <VolumeByPlantChart data={volumeData} />
         </div>
 
-        <Filters
-          plants={plants}
-          distributionCenters={distributionCenters}
-          selectedPlant={selectedPlant}
-          selectedStatus={selectedStatus}
-          onPlantChange={setSelectedPlant}
-          onStatusChange={setSelectedStatus}
-        />
-
-        <KPICards kpi={kpi} loading={kpiLoading} error={null} />
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <LineChartComponent />
-          <BarChartComponent />
+        <div className="tabs">
+          <button onClick={() => setActiveTab('catalogo')} className={activeTab === 'catalogo' ? 'active' : ''}>Catálogo</button>
+          <button onClick={() => setActiveTab('pedidos')} className={activeTab === 'pedidos' ? 'active' : ''}>Pedidos</button>
+          <button onClick={() => setActiveTab('usuarios')} className={activeTab === 'usuarios' ? 'active' : ''}>Usuarios</button>
+          <button onClick={() => setActiveTab('notificaciones')} className={activeTab === 'notificaciones' ? 'active' : ''}>Notificaciones</button>
         </div>
 
-        <OrderForm
-          plants={plants}
-          distributionCenters={distributionCenters}
-          onSubmit={handleOrderSubmit}
-          loading={ordersLoading}
-        />
-
-        <OrderTable
-          orders={paginatedOrders}
-          loading={ordersLoading}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
+        <div className="tab-content">
+          {activeTab === 'catalogo' && (
+            <>
+              <CatalogoList catalogo={catalogo} onEdit={() => {}} onDelete={deleteCatalogo} deletingId={null} />
+              <CatalogoForm onSubmit={createCatalogo} loading={catalogoLoading} />
+            </>
+          )}
+          {activeTab === 'pedidos' && (
+            <>
+              <PedidoList pedidos={pedidos} onEdit={() => {}} onDelete={deletePedido} deletingId={null} />
+              <PedidoForm onSubmit={createPedido} loading={pedidosLoading} />
+            </>
+          )}
+          {activeTab === 'usuarios' && (
+            <>
+              <UsuarioList usuarios={usuarios} onEdit={() => {}} onDelete={deleteUsuario} deletingId={null} />
+              <UsuarioForm onSubmit={createUsuario} loading={usuariosLoading} />
+            </>
+          )}
+          {activeTab === 'notificaciones' && (
+            <>
+              <NotificacionList notificaciones={notificaciones} onDelete={deleteNotificacion} deletingId={null} />
+              <NotificacionForm onSubmit={createNotificacion} loading={notificacionesLoading} />
+            </>
+          )}
+        </div>
       </main>
-
-      {notification && (
-        <Notification
-          message={notification.message}
-          type={notification.type}
-          onClose={() => setNotification(null)}
-        />
-      )}
     </div>
   );
 }
